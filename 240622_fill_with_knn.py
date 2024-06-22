@@ -736,7 +736,7 @@ from tqdm import tqdm
 target_cols = list(set(col_cand_list))
 
 n_work = 10
-for work_idx in tqdm(range(4,n_work)):
+for work_idx in tqdm(range(5,n_work)):
 
     target_sample = target_cols[work_idx::n_work]
     work_name = '{}_{}'.format(work_idx,n_work) 
