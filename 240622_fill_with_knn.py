@@ -818,7 +818,7 @@ for work_idx in tqdm(range(4,n_work)):
     file_name = 'reg_scatter_{}.png'.format(work_name)
     fig.savefig(os.path.join(save_dir,file_name))
 
-    fig,axes = plot_reg_score()
+    fig,axes = plot_reg_score(dict_train_test,dict_rslt,dict_score)
     file_name = 'reg_rslt_{}.png'.format(work_name)
     fig.savefig(os.path.join(save_dir,file_name))
 
