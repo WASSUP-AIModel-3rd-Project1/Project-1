@@ -736,6 +736,8 @@ from tqdm import tqdm
 target_cols = list(set(col_cand_list))
 
 n_work = 10
+
+'''
 for work_idx in tqdm(range(5,n_work)):
 
     target_sample = target_cols[work_idx::n_work]
@@ -845,55 +847,80 @@ for work_idx in tqdm(range(5,n_work)):
 ########################################################################
 
 # load, score intermd pkl and finish to csv
+
+
+knn_dir = 'knn_rslt'
 knn_path = os.path.join(RSLT_DIR,knn_dir)
-os.listdir(knn_path)
+work_idx = 1
+n_work = 10
 
-work_idx = 2
-work_name = '{}_10'.format(work_idx)
+for work_idx in tqdm(range(1,5)):
 
-files = list(filter(lambda x : work_name in x,os.listdir(knn_path)))
-file_dict = dict()
-for filename in files:
-    if filename[-4:] != '.pkl' : continue
-    if 'knn' in filename : continue
-    print(filename)
-    file_path = os.path.join(knn_path,filename)
-    with open (file_path,'rb') as f:
-        file_dict[filename[:-5-len(work_name)]] = pickle.load(f)
+    work_name = '{}_{}'.format(work_idx, n_work)
+    target_sample = target_cols[work_idx::n_work]
+    work_name = '{}_{}'.format(work_idx,n_work) 
+    print(f'work : {work_name}')
 
-dict_rslt = file_dict['dict_rslt']
-target_sample= list(dict_rslt.keys())
+    pvtb_encoded['city_idx'] = pvtb_encoded['geo_label_city'].apply(lambda x : city_list.index(x))
+    temp = list(pvtb_encoded.columns)
+    pvtb_encoded_whole = pvtb_encoded[['city_idx']+temp[1:-1]]
+    test_df = pvtb_encoded[info_cols+target_cols]
 
-rslt_form = test_df[info_cols+target_sample]
 
-for col in target_sample:
-    cond = test_df[col].isna()
-    loaded = dict_rslt[col]['target']
-    assert np.sum(cond) == len(loaded)  
-    rslt_form.loc[cond,col] = loaded
+    files = list(filter(lambda x : work_name in x,os.listdir(knn_path)))
+    file_dict = dict()
+    for filename in files:
+        if filename[-4:] != '.pkl' : continue
+        if 'knn' in filename : continue
+        print(filename)
+        file_path = os.path.join(knn_path,filename)
+        with open (file_path,'rb') as f:
+            file_dict[filename[:-5-len(work_name)]] = pickle.load(f)
 
-file_name = 'pvtb_filled_knn_{}_{}.csv'.format(work_idx,10)
-save_dir = os.path.join(RSLT_DIR,knn_dir,'PROCESSED')
-if not os.path.exists(save_dir): os.mkdir(save_dir)
-rslt_form.to_csv(os.path.join(save_dir,file_name))
+    dict_rslt = file_dict['dict_rslt']
+    target_sample= list(dict_rslt.keys())
 
-### check score for loaded data
+    rslt_form = test_df[info_cols+target_sample]
 
-dict_rslt=file_dict['dict_rslt']
-dict_train_test=file_dict['dict_train_test']
+    for col in target_sample:
+        cond = test_df[col].isna()
+        loaded = dict_rslt[col]['target']
+        assert np.sum(cond) == len(loaded)  
+        rslt_form.loc[cond,col] = loaded
 
-dict_df = dict()
-for col in target_sample:
-    temp = test_df[info_cols+[col]]
-    cond_na = temp.isna().any(axis=1)
-    dict_df[col] = {
-        'train' : [temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]],
-        'target' : [temp.loc[cond_na,info_cols], cond_na],
-    }
+    file_name = 'pvtb_filled_knn_{}_{}.csv'.format(work_idx,10)
+    save_dir = os.path.join(RSLT_DIR,knn_dir,'PROCESSED')
+    if not os.path.exists(save_dir): os.mkdir(save_dir)
+    rslt_form.to_csv(os.path.join(save_dir,file_name))
 
-## check score
-dict_score = make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,print_plot=True)
-fig,axes = scatter_reg_rslt(dict_train_test,dict_rslt)
-fig,axes = plot_reg_score()
+    ### check score for loaded data
 
-'''
+    dict_rslt=file_dict['dict_rslt']
+    dict_train_test=file_dict['dict_train_test']
+
+    dict_df = dict()
+    for col in target_sample:
+        temp = test_df[info_cols+[col]]
+        cond_na = temp.isna().any(axis=1)
+        dict_df[col] = {
+            'train' : [temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]],
+            'target' : [temp.loc[cond_na,info_cols], cond_na],
+        }
+
+    ## check score
+    dict_score = make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,print_plot=True)
+
+    save_dir = os.path.join(RSLT_DIR,knn_dir,'PLOT')
+    if not os.path.exists(save_dir): os.mkdir(save_dir)
+
+    fig,axes = scatter_reg_rslt(dict_train_test,dict_rslt)
+    file_name = 'reg_scatter_{}.png'.format(work_name)
+    fig.savefig(os.path.join(save_dir,file_name))
+
+    fig,axes = plot_reg_score(dict_train_test,dict_rslt,dict_score)
+    file_name = 'reg_rslt_{}.png'.format(work_name)
+    fig.savefig(os.path.join(save_dir,file_name))
+
+    print("process done")
+
+''' '''
