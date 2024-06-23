@@ -430,10 +430,6 @@ dict_metric = {
     'geo_strata_Segregation' : metric_binary,
 }
 
-pvtb_name = 'pvtb_city_entire_ver0.csv'
-pvtb_path = os.path.join(PVTB_DIR,pvtb_name)
-pvtb_entire = pd.read_csv(pvtb_path)
-
 geo_name = 'geo_strat_info.csv'
 geo_info_path = os.path.join(RSLT_DIR,geo_name)
 geo_strat_info = pd.read_csv(geo_info_path, index_col=0)
@@ -733,15 +729,18 @@ import copy, time
 from tqdm import tqdm
 
 
-target_cols = list(set(col_cand_list))
+cand_cols = list(set(col_cand_list))
+entire_label = list(pvtb_encoded.columns)[9:]
+print(len(entire_label))
+target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
+prjct_name = 'else'
 
 n_work = 10
 
-'''
-for work_idx in tqdm(range(5,n_work)):
+for work_idx in tqdm(range(1,n_work,2)):
 
     target_sample = target_cols[work_idx::n_work]
-    work_name = '{}_{}'.format(work_idx,n_work) 
+    work_name = '{}_{}_{}'.format(prjct_name,work_idx,n_work) 
     print(f'work : {work_name}')
 
     pvtb_encoded['city_idx'] = pvtb_encoded['geo_label_city'].apply(lambda x : city_list.index(x))
@@ -796,9 +795,8 @@ for work_idx in tqdm(range(5,n_work)):
         dict_knn[col], dict_rslt[col] = knn_col, {'target':y_pred_trgt,'valid':y_pred_vlid}
 
     ## save intermd pkl
-    knn_dir = 'knn_rslt'
+    knn_dir = f'knn_{prjct_name}'
     save_dir = os.path.join(RSLT_DIR,knn_dir)
-    work_name = '{}_{}'.format(work_idx,n_work) 
 
     file_name = 'dict_train_test_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_train_test)
@@ -848,11 +846,13 @@ for work_idx in tqdm(range(5,n_work)):
 
 # load, score intermd pkl and finish to csv
 
+entire_label = 
+target_cols = 
 
-knn_dir = 'knn_rslt'
+knn_dir = 'knn_else'
 knn_path = os.path.join(RSLT_DIR,knn_dir)
-work_idx = 1
-n_work = 10
+work_idx = 0
+n_work = 5 
 
 for work_idx in tqdm(range(1,5)):
 
@@ -923,4 +923,4 @@ for work_idx in tqdm(range(1,5)):
 
     print("process done")
 
-''' '''
+''' 
