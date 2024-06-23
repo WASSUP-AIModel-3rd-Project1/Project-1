@@ -1,0 +1,36 @@
+geo_label_city,geo_label_state,geo_label_citystate,geo_strata_region,geo_strata_poverty,geo_strata_Population,geo_strata_PopDensity,geo_strata_Segregation,count
+New York City,NY,"New York City, NY",Northeast,Less poor cities (<18% poor),Largest (>1.3 million),Highest pop. density (>10k per sq mi),Highly Segregated (50%+),6535
+Houston,TX,"Houston, TX",South,Poorest cities (18%+ poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),6431
+Los Angeles,CA,"Los Angeles, CA",West,Less poor cities (<18% poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),6372
+Philadelphia,PA,"Philadelphia, PA",Northeast,Poorest cities (18%+ poor),Largest (>1.3 million),Highest pop. density (>10k per sq mi),Highly Segregated (50%+),6310
+San Diego,CA,"San Diego, CA",West,Less poor cities (<18% poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),6251
+Chicago,IL,"Chicago, IL",Midwest,Less poor cities (<18% poor),Largest (>1.3 million),Highest pop. density (>10k per sq mi),Highly Segregated (50%+),6210
+San Francisco,CA,"San Francisco, CA",West,Less poor cities (<18% poor),Smaller (<1.3 million),Highest pop. density (>10k per sq mi),Less Segregated (<50%),6121
+Las Vegas,NV,"Las Vegas, NV",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5848
+Boston,MA,"Boston, MA",Northeast,Less poor cities (<18% poor),Smaller (<1.3 million),Highest pop. density (>10k per sq mi),Highly Segregated (50%+),5718
+Oakland,CA,"Oakland, CA",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5676
+Dallas,TX,"Dallas, TX",South,Less poor cities (<18% poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5655
+Fort Worth,TX,"Fort Worth, TX",South,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5628
+Seattle,WA,"Seattle, WA",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5507
+Phoenix,AZ,"Phoenix, AZ",West,Less poor cities (<18% poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5437
+Charlotte,NC,"Charlotte, NC",South,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5381
+San Antonio,TX,"San Antonio, TX",South,Less poor cities (<18% poor),Largest (>1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5349
+Washington,DC,"Washington, DC",South,Less poor cities (<18% poor),Smaller (<1.3 million),Highest pop. density (>10k per sq mi),Highly Segregated (50%+),5264
+Portland,OR,"Portland, OR",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5219
+Long Beach,CA,"Long Beach, CA",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5215
+San Jose,CA,"San Jose, CA",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5206
+Austin,TX,"Austin, TX",South,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5198
+Detroit,MI,"Detroit, MI",Midwest,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5160
+Denver,CO,"Denver, CO",West,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5157
+Cleveland,OH,"Cleveland, OH",Midwest,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5113
+Baltimore,MD,"Baltimore, MD",South,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),5101
+Oklahoma City,OK,"Oklahoma City, OK",South,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),5030
+Indianapolis,IN,"Indianapolis, IN",Midwest,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4916
+Columbus,OH,"Columbus, OH",Midwest,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4907
+Milwaukee,WI,"Milwaukee, WI",Midwest,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),4881
+Kansas City,MO,"Kansas City, MO",Midwest,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4848
+Tucson,AZ,"Tucson, AZ",West,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4799
+Memphis,TN,"Memphis, TN",South,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Highly Segregated (50%+),4631
+El Paso,TX,"El Paso, TX",South,Poorest cities (18%+ poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4553
+Louisville,KY,"Louisville, KY",South,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4527
+Minneapolis,MN,"Minneapolis, MN",Midwest,Less poor cities (<18% poor),Smaller (<1.3 million),Lower pop. density (<10k per sq mi),Less Segregated (<50%),4511
