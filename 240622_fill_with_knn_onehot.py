@@ -609,10 +609,14 @@ info_cols = strata_one_hot_cols+strata_ordinal_cols
 cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
 print(len(entire_label))
-#target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
-target_cols = cand_cols
-prjct_name = 'canberra5_cand'
-metric = 'canberra'
+
+metric = 'braycurtis'
+n_neigh = 7
+col_select = 'else'
+
+if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
+if col_select == 'cand' : target_cols = cand_cols
+prjct_name = '{}{}_{}'.format(metric,n_neigh,col_select)
 n_work = 10
 
 for work_idx in tqdm(range(1,n_work,2)):
@@ -639,7 +643,7 @@ for work_idx in tqdm(range(1,n_work,2)):
                              random_state=801) #check how to using stratify option
         for col in target_sample}
 
-    model = KNeighborsRegressor(n_neighbors=5,weights='distance',metric=metric,algorithm='auto')
+    model = KNeighborsRegressor(n_neighbors=n_neigh,weights='distance',metric=metric,algorithm='auto')
 
     dict_knn, dict_rslt = dict(), dict()
     for col in target_sample:
