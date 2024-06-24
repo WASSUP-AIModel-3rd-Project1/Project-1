@@ -153,10 +153,10 @@ def encoding_adj(encode_info,adjacents):
 
 ## FUNCTIONS - DATA- SCORE REG RSLT
 
-def make_reg_score_dict(y_pred,y_actual,base_val):
-    rmse_model, rmse_base = np.sqrt(mse(y_pred,y_actual)), np.sqrt(mse([base_val]*len(y_actual),y_actual))
+def make_reg_score_dict(y_actual,y_pred,base_val):
+    rmse_model, rmse_base = np.sqrt(mse(y_actual,y_pred)), np.sqrt(mse([base_val]*len(y_actual),y_actual))
     msle_model, msle_base = 0, 0 #msle(valid_y,y_pred) : negtive value error occurs but i don't know why #msle(valid_y,[train_y.mean()]*len(valid_y)) :
-    mape_model, mape_base = mape(y_pred,y_actual), mape([base_val]*len(y_actual),y_actual)
+    mape_model, mape_base = mape(y_actual,y_pred), mape([base_val]*len(y_actual),y_actual)
     r2_model, r2_base = r2_score(y_actual,y_pred), 0
     
     return {
@@ -178,7 +178,7 @@ def make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,pri
         train_y = dict_df[col]['train'][1]
         valid_y = dict_train_test[col][3]
         y_pred = dict_rslt[col]['valid']
-        dict_score[col] = make_reg_score_dict(y_pred,valid_y,np.mean(train_y))
+        dict_score[col] = make_reg_score_dict(valid_y,y_pred,np.mean(train_y))
         if print_plot :
             print_reg_score_dict(col,dict_score[col])
             print('-'*150)
@@ -200,7 +200,7 @@ def scatter_reg_rslt(dict_train_test,dict_rslt): #set_iput
     fig,axes = plt.subplots(3,3,figsize=(12,12))
     fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_line,
     #fig,axes = pair_plot_feat_hue(fig=None,axes=None,data=data_line,
-                                  pair_plot=sns.lineplot,lw=0.5)
+                                  pair_plot=sns.lineplot,lw=0.3)
     #fig.set_size_inches(12,8, forward=True)
     fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_plot,
                                   pair_plot=sns.scatterplot,s=5,alpha=0.65)
@@ -729,7 +729,7 @@ import copy, time
 from tqdm import tqdm
 
 
-cand_cols = list(set(col_cand_list))
+cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
 print(len(entire_label))
 target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
@@ -788,11 +788,14 @@ for work_idx in tqdm(range(1,n_work,2)):
         start = time.time()
         knn_col.fit(train_X,train_y)
         y_pred_trgt = knn_col.predict(target_X)
+        pred_start = time.time()
         y_pred_vlid = knn_col.predict(valid_X)
         end = time.time()
 
         print (col,f'/ train_n : {len(train_X)}/ target_n : {len(target_X)}/ time : {end-start:.5f} (sec)')
-        dict_knn[col], dict_rslt[col] = knn_col, {'target':y_pred_trgt,'valid':y_pred_vlid}
+        dict_knn[col], dict_rslt[col] = knn_col, {'target':y_pred_trgt,
+                                                  'valid':y_pred_vlid,
+                                                  'pred_time' : end-pred_start}
 
     ## save intermd pkl
     knn_dir = f'knn_{prjct_name}'
