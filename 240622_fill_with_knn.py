@@ -120,7 +120,7 @@ def pair_plot_feat_hue(fig,axes,data:dict,pair_plot,axis_share=False,hue_label_d
     #ver2
     if (fig is None) or (axes is None) :
         num_r, num_c = choose_plot_grid(len(data))
-        fig, axes = plt.subplots(num_r,num_c,figsize=(21,17),sharex=axis_share,sharey=axis_share)
+        fig, axes = plt.subplots(num_r,num_c,figsize=(4*num_c,4*num_r),sharex=axis_share,sharey=axis_share)
     for n,key in enumerate(data.keys()):
         ax = axes.flatten()[n]
         plt.setp(ax.get_xticklabels(),ha = 'left',rotation = 90)
@@ -150,18 +150,15 @@ def encoding_adj(encode_info,adjacents):
         set(map(lambda x : encode_info[x],ele))
         for ele in adjacents
     ]
-
 ## FUNCTIONS - DATA- SCORE REG RSLT
 
 def make_reg_score_dict(y_actual,y_pred,base_val):
     rmse_model, rmse_base = np.sqrt(mse(y_actual,y_pred)), np.sqrt(mse([base_val]*len(y_actual),y_actual))
-    msle_model, msle_base = 0, 0 #msle(valid_y,y_pred) : negtive value error occurs but i don't know why #msle(valid_y,[train_y.mean()]*len(valid_y)) :
     mape_model, mape_base = mape(y_actual,y_pred), mape([base_val]*len(y_actual),y_actual)
     r2_model, r2_base = r2_score(y_actual,y_pred), 0
     
     return {
         'rmse' : [rmse_model, rmse_base],
-        'msle' : [msle_model, msle_base],
         'mape' : [mape_model, mape_base],
         'r2_score' : [r2_model,r2_base]
     }
@@ -169,8 +166,7 @@ def make_reg_score_dict(y_actual,y_pred,base_val):
 def print_reg_score_dict(name,dict_score):
     print('{}\nr2 score : {:.5f}'.format(name,dict_score['r2_score'][0]))
     print('rmse_model : {:.5f} / rmse_base : {:.5f}\t'.format(*dict_score['rmse']),
-          'mape_model : {:.5f} / mape_base : {:.5f}\t'.format(*dict_score['mape']),
-          'msle_model : {:.5f} / msle_base : {:.5f}'.format(*dict_score['msle']))
+          'mape_model : {:.5f} / mape_base : {:.5f}\t'.format(*dict_score['mape']))
 
 def make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,print_plot=False):
     dict_score = dict()
@@ -187,7 +183,7 @@ def make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,pri
 ## FUNCTIONS - DATA- PLOT REG RSLT
 from itertools import repeat, chain
 
-def scatter_reg_rslt(dict_train_test,dict_rslt): #set_iput
+def scatter_reg_rslt(dict_train_test,dict_rslt,dict_score): #set_iput
     target_sample = list(dict_rslt.keys())
     data_plot ={
         col : (dict_train_test[col][3], dict_rslt[col]['valid'])
@@ -197,9 +193,9 @@ def scatter_reg_rslt(dict_train_test,dict_rslt): #set_iput
         col : (dict_train_test[col][3],dict_train_test[col][3])
         for col in target_sample 
     }
-    fig,axes = plt.subplots(3,3,figsize=(12,12))
-    fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_line,
-    #fig,axes = pair_plot_feat_hue(fig=None,axes=None,data=data_line,
+#    fig,axes = plt.subplots(3,3,figsize=(12,12))
+#    fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_line,
+    fig,axes = pair_plot_feat_hue(fig=None,axes=None,data=data_line,
                                   pair_plot=sns.lineplot,lw=0.3)
     #fig.set_size_inches(12,8, forward=True)
     fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_plot,
@@ -218,7 +214,7 @@ def scatter_reg_rslt(dict_train_test,dict_rslt): #set_iput
     
     return fig,axes
 
-def plot_reg_score(dict_train_test,dict_rslt,dict_score):
+def plot_reg_score(dict_train_test,dict_rslt,dict_score,target_sample):
     data_plot ={
         col : (dict_train_test[col][3], dict_rslt[col]['valid'])
         for col in target_sample 
@@ -241,9 +237,9 @@ def plot_reg_score(dict_train_test,dict_rslt,dict_score):
         df_score = pd.DataFrame(dict_score[col]).T[[1,0]]
         xs = list(chain.from_iterable(repeat(val,2) for val in df_score.index))
         ax3r = ax3.twinx()
-        sns.barplot(x=xs[:4],y=list(df_score.values.reshape(-1))[:4],
-                    hue = ['knn_pred','base']*2,ax=ax3,alpha=0.65,legend=False)
-        sns.barplot(x=xs[4:],y=list(df_score.values.reshape(-1))[4:],
+        sns.barplot(x=xs[:2],y=list(df_score.values.reshape(-1))[:2],
+                    hue = ['knn_pred','base']*1,ax=ax3,alpha=0.65,legend=False)
+        sns.barplot(x=xs[2:],y=list(df_score.values.reshape(-1))[2:],
                     hue = ['knn_pred','base']*2,ax=ax3r,alpha=0.8,legend=False)
         ax3.set_yscale('log')
         ax3r.set_ylim([0.0,1.15])
@@ -273,6 +269,7 @@ def plot_reg_score(dict_train_test,dict_rslt,dict_score):
         plt.setp(ax.get_xticklabels(),ha ='center',rotation = 0, fontsize = 9)
 
     return fig, axes
+
 
 ## CONSTANTS - ENCODING/METRIC
 
@@ -728,12 +725,18 @@ from sklearn.neighbors import KNeighborsRegressor
 import copy, time
 from tqdm import tqdm
 
-
 cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
-print(len(entire_label))
-target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
-prjct_name = 'else'
+
+metric = 'custom'
+n_neigh = 7
+col_select = 'cand'
+
+if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
+if col_select == 'cand' : target_cols = cand_cols
+prjct_name = '{}{}_{}'.format(metric,n_neigh,col_select)
+
+if metric == 'custom' : metric = lambda x,y : weigted_metric_city(x,y,weight_norm)
 
 n_work = 10
 
@@ -760,7 +763,7 @@ for work_idx in tqdm(range(1,n_work,2)):
     #param 추가 
     
     dict_df = dict()
-    for col in target_cols:
+    for col in target_sample:
         temp = test_df[info_cols+[col]]
         cond_na = temp.isna().any(axis=1)
         dict_df[col] = {
@@ -773,10 +776,9 @@ for work_idx in tqdm(range(1,n_work,2)):
         col: train_test_split(*dict_df[col]['train'],
                              test_size = 0.2,
                              random_state=801) #check how to using stratify option
-        for col in target_cols}
+        for col in target_sample}
 
-    knn_metric_weighted = lambda x,y : weigted_metric_city(x,y,weight_norm)
-    model = KNeighborsRegressor(n_neighbors=7,weights='distance',metric=knn_metric_weighted,algorithm='auto')
+    model = KNeighborsRegressor(n_neighbors=n_neigh,weights='distance',metric=metric,algorithm='auto')
 
     dict_knn, dict_rslt = dict(), dict()
     for col in target_sample:
@@ -800,14 +802,12 @@ for work_idx in tqdm(range(1,n_work,2)):
     ## save intermd pkl
     knn_dir = f'knn_{prjct_name}'
     save_dir = os.path.join(RSLT_DIR,knn_dir)
+    if not os.path.exists(save_dir): os.mkdir(save_dir)
 
     file_name = 'dict_train_test_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_train_test)
     file_name = 'dict_rslt_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_rslt)
-    #file_name = 'dict_knn_{}.pkl'.format(work_name)
-    #save_pkl(save_dir,file_name,dict_knn)
-    #_pickle.PicklingError: Can't pickle <function <lambda> at 0x7f08f804d8b0>: attribute lookup <lambda> on __main__ failed
 
     print("pkl saved")
 
@@ -817,11 +817,11 @@ for work_idx in tqdm(range(1,n_work,2)):
     save_dir = os.path.join(RSLT_DIR,knn_dir,'PLOT')
     if not os.path.exists(save_dir): os.mkdir(save_dir)
 
-    fig,axes = scatter_reg_rslt(dict_train_test,dict_rslt)
+    fig,axes = scatter_reg_rslt(dict_train_test,dict_rslt,dict_score)
     file_name = 'reg_scatter_{}.png'.format(work_name)
     fig.savefig(os.path.join(save_dir,file_name))
 
-    fig,axes = plot_reg_score(dict_train_test,dict_rslt,dict_score)
+    fig,axes = plot_reg_score(dict_train_test,dict_rslt,dict_score,target_sample)
     file_name = 'reg_rslt_{}.png'.format(work_name)
     fig.savefig(os.path.join(save_dir,file_name))
 
