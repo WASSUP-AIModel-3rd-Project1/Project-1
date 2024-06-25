@@ -729,8 +729,8 @@ cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
 
 metric = 'custom'
-n_neigh = 7
-col_select = 'cand'
+n_neigh = 7 
+col_select = 'else'
 
 if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
 if col_select == 'cand' : target_cols = cand_cols
@@ -740,7 +740,7 @@ if metric == 'custom' : metric = lambda x,y : weigted_metric_city(x,y,weight_nor
 
 n_work = 10
 
-for work_idx in tqdm(range(1,n_work,2)):
+for work_idx in tqdm(range(0,n_work,2)):
 
     target_sample = target_cols[work_idx::n_work]
     work_name = '{}_{}_{}'.format(prjct_name,work_idx,n_work) 
