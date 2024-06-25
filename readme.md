@@ -11,7 +11,7 @@
 
 ## 2. 목적
 - 미국 대도시의 생활 환경 데이터를 기반으로 주요 질병의 발병률 및 사망률을 예측하는 모델을 개발하여 예방의학 발전을 도모
-- Random Forest, kNN, XGBoost 및 Multi-Layer Perceptron(MLP) 모델을 이용하여 예측
+- Random Forest, k-NN, XGBoost 및 Multi-Layer Perceptron(MLP) 모델을 이용하여 예측
 - 적절한 성능지표를 이용하여 회귀 예측에 적합한 모델링 개발
 
 
@@ -20,9 +20,14 @@
 - [Big Cities Health Inventory(BCHI)](https://bigcitieshealthdata.org/)
 - 미국 대도시들에 대해 건강, 기후 및 환경, 경제적 불평등 등 건강 지표 및 건강 지표에 영향 줄 수 있는 다양한 통계가 집계되어 있음
 
+
 ### 2) 데이터 셋 구조
 - 미국 전역 및 35개 대도시에 대한 2010~2022년의 통계 자료,
 총 189,979건의 레코드로 구성됨됨
+
+![df](./imgs/1.df.png)
+_그림 1. BCHI 데이터 셋_
+
 - 각 레코드는 층화된 집단에 대한 특정 지역 및 연도의 통계와 관련된 내용
    - [층화된 집단에 대한 정보, 통계 종류 및 분류, 통계값, 단위, 신뢰구간, 데이터의 출처 등으로 구성](./research/240614_step0.ipynb)
    - 인종, 성별, 도시의 특성을 기준으로 층화시켜 조사한 통계 자료
@@ -31,6 +36,8 @@
    - **도시의 특성** : 지역, 경제적 풍요, 거주지에서 인종 분리 정도, 인구, 인구밀도
         (도시 특성 중 지역 외에는 모두 binary ordinal / 모두 종합하면 19개의 도시 유형이 나옴)
    - 통계 자료의 종류는 총 118종의 지표 (모두 numeric)
+
+
 ### 3) EDA
 - 레코드의 특성 관련한 칼럼에 대하여, [신뢰 구간](./research/240617_ciEDA.ipynb), [인구 및 성별 층화 관련 결측](./research/240619_check_missing_entire.ipynb), [지리적 정보에 관한 칼럼](./research/240619_EDA_geo.ipynb), [통계값의 단위와 스케일 및 분포 간의 관계](./research/240619_variance_feature.ipynb) 등에 대하여 조사
 - 위의 조사들을 통해 데이터 분포의 특성 및 결측값의 분포 등에 대하여 파악함
@@ -45,13 +52,45 @@
 ### 1) 종속 변수 설정
 **기준** : 결측치를 채울 수 없는 점을 고려하여, 결측률이 낮고 주요한 질병/사망요인에 대한 통계지표를 종속변수로 설정
 
+|분류|항목|
+|-------|------------------|
+|Cancer | All Cancer Deaths|
+|Cancer | Colorectal Cancer Deaths|
+|Cancer | Lung Cancer Deaths|
+|Cardiovascular Disease | Cardiovascular Disease Deaths|
+|Cardiovascular Disease | Heart Disease Deaths|
+|Deaths | Deaths from All Causes|
+|Deaths | Gun Deaths (Firearms)|
+|Deaths | Injury Deaths|
+|Deaths | Motor Vehicle Deaths|
+|Deaths | Premature Death|
+|Diabetes and Obesity | Diabetes Deaths|
+|Life Expectancy at Birth | Life Expectancy|
+|Mental Health | Suicide|
+|Substance Use | Drug Overdose Death|
+
+_표 1. 사용된 종속 변수 목록_
+
+
 ### 2) 독립 변수 설정
+- 각 종속변수 별로 별개의 독립변수를 선정
 - 종속변수를 제외한 지표 중에서 독립변수 선정
 - 도메인 지식을 활용하여 종속변수 별로 해당하는 Feature 선별
 - [통계적 접근으로 독립변수로 활용하면 안될 Feature 선별](./research/240619_indvar.ipynb)
 - [종속변수별로 결과를 직접 드러낼 수 있는 일부 Feature 제거](./research/set_lists.ipynb)
 
+![indvar](./imgs/2.varlist.png)
+_그림 2. 각 종속변수에 따라 설정된 독립 변수 후보의 예시_
+
 ## 4. 전처리
+**전체 과정**
+- raw data를 pivot table로 변형, k-NN 모델로 결측치 보간, 독립변수를 대상으로 scaling 진행, nominal 데이터에 대한 encoding 등
+- 도시,연도,인종,성별로 층화된 각 표본을 row로, 각 표본의 층화 정보와 118개 통계 지표를 column으로 한 pivot table로 변형
+
+![pvtb](./imgs/3.pvtb.png)
+_그림 3. pivot table 변형 후 데이터_
+
+**결측치 보간**
 - 분포의 형태 및 집계 데이터임을 감안하여 이상치 기준은 설정하지 않음
 - 세부적으로 층화된 샘플 집단에 대해 결측치를 해결하는 것이 주요한 과제
 - 각 통계 지표에 대해서 인구/성별/도시의 특성에 따라 층화된 정보를 바탕으로 통계치를 예측하는 모델을 만들어, 결측치를 보간하고자 함
@@ -59,18 +98,31 @@
   - 각 층화 특성에서의 거리에 weight를 반영된 custom metric을 구현
   - Euclidean 혹은 weight가 반영되지 않은 custom metric에 비해 유의미하게 좋은 성능을 보임
   - weight의 값은 도메인 지식과 EDA 결과를 바탕으로 휴리스틱하게 결정
+  - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 지표 하나당 분 단위로 걸리는 단점이 있음
   - [Decision Tree](./research/240620_how_to_fill_missing_with_dt.ipynb)를 이용한 모델도 구현해본 결과, k-NN에 준하는 성능을 얻음 
+
+![kNN관련결과](./imgs/4.knn.png)
+_그림 4. train셋의 평균을 baseline으로 하였을 때, k-NN regressor 적용 결과 분석 예시 (실제 및 예측값 분포/오차의 분포/성능 지표)_
+
 ## 5. 모델
 ### 1) 모델 선택 및 학습
 - ```sklearn.train_test_split```을 사용하여 연도를 기준으로 층화해 train 80%, test 20%로 [분리](./model/data_prep.ipynb)
-- **전처리** : raw data를 pivot table로 변형, k-NN 모델로 결측치 보간, 독립변수를 대상으로 scaling 진행 등
 - [Random Forest](./model/random_forest.ipynb), [XGBoost](./model/boost.ipynb), [MLP](./model/mlp.ipynb) 모델을 사용
-- 각 종속변수별로 기존에 정한 독립변수 후보만 사용하는 것과 기타 통계지표도 활용하여 예측하는 것 사이 비교 평가 진행
+- 각 종속변수별로 앞서 정한 독립변수 후보만 사용하는 것과 기타 통계지표도 활용하여 예측하는 것 사이 비교 평가 진행
+- grid search를 통해 각 모델별로 가장 높은 성능을 내는 hyper parameter 탐색
+
+![RF학습](./imgs/5.rf.png) _그림 5. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best Random Foreset Model의 $R^2$ score 성능 비교_
+
+![XGB학습](./imgs/6.xgb.png) _그림 6. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best XGBoost Model의 $R^2$ score 성능 비교_
 
 
-### [결과 평가](./model/compare_results.ipynb)
+### 2) [결과 평가](./model/compare_results.ipynb)
 - 모델 성능은 RMSE, MAPE, $R^2$ score 등을 활용하여 평가
 - XGBoost 모델과 전처리 과정에서 개발한 k-NN 모델이 최종적으로 가장 우수한 성능을 보였음
+  - k-NN 모델이 성능 지표 면에서는 가장 뛰어났음
+  - XGBoost 모델은 성능은 k-NN에 준하면서 train/predict에 걸리는 시간이 k-NN 모델에 비해 압도적으로 짧게 걸렸음
+
+![결과비교](./imgs/7.rslt.png) _그림 7. Best Model 간의 성능 비교_
 
 ## 6. 분석 결과 및 해석
 - 인종, 성별, 도시 관련 특성에 대한 정보로만 학습한 k-NN의 성능이 좋았던 것과 Random Forest의 Feature Importance 분석 결과를 바탕으로 하여, 보건 통계를 예측할 때 인종, 성별이 주요한 역할을 하는 것을 확인
