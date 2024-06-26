@@ -79,16 +79,16 @@ def prjct_config():
     weight1 = np.array([0.55,0.5,0.35,0.05])
     
     knn_set={
-        'metric' : 'canberra',
+        'metric' : 'custom',
         'n_neigh' : 5, 
-        'weight_norm' : weight1
+        'weight_norm' : weight0
     }
     
     col_select = 'test'
     if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
     if col_select == 'cand' : target_cols = cand_cols + test_cols
     if col_select == 'test' : target_cols = test_cols
-    prjct_name = '{}{}_ver2_strata-val_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
+    prjct_name = '{}{}_ver3_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
     
     return prjct_name, knn_set, work_setting, target_cols
 
@@ -107,12 +107,12 @@ def lists_append_together(lists:list,data:list):
     tuple(map(lambda x : x[0].append(x[1]),zip(lists,data)))
     return lists 
 
-def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_range=10,**kwargs):
+def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_strata=10,**kwargs):
     if method in ['quantile','order'] :
-        p_arr = np.linspace(0,n_range)/n_range
+        p_arr = np.linspace(0,n_strata)/n_strata
         cut_p = np.quantile(y,p_arr)
     elif method == 'value':
-        cut_p = np.linspace(np.min(y)-1,np.max(y),n_range)
+        cut_p = np.linspace(np.min(y)-1,np.max(y),n_strata)
     cut_p[-1] = np.max(y)+1
     train_Xs,test_Xs,train_ys,test_ys = [],[],[],[]
     data = [train_Xs,test_Xs,train_ys,test_ys]
@@ -136,13 +136,15 @@ def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_range=1
     
     return tuple(map(pd.concat,data))
 
-def make_data_dict(test_df, target_sample,strata='quantile'):
+def make_data_dict(test_df, target_sample,n_strata=10,strata='quantile'):
     dict_data = dict()
     for col in target_sample:
         temp = test_df[info_cols+[col]]
         cond_na = temp.isna().any(axis=1)
         X_spprt, y_spprt = temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]
-        train_X, valid_X, train_y, valid_y= train_test_split_strat_y(X_spprt, y_spprt,strata,
+        train_X, valid_X, train_y, valid_y= train_test_split_strat_y(X_spprt, y_spprt,
+                                                                     n_strata=n_strata,
+                                                                     method=strata,
                                                          test_size = 0.2,
                                                          random_state=801,
                                                          ) 
@@ -223,12 +225,13 @@ if __name__ == '__main__':
     # knn regression for each work
     for work_idx in tqdm(range(start_idx,n_work,step)):
         target_sample = target_cols[work_idx::n_work]
-        work_name = '{}_{}_{}'.format(prjct_name,work_idx,n_work) 
+        work_name = '{}_{}_{}'.format(prjct_name,n_work,work_idx) 
         print(f'work : {work_name}')
 
         test_df = pvtb_encoded[info_cols+target_cols]
-        dict_data = make_data_dict(test_df,target_sample,strata='value')
-        model = KNeighborsRegressor(n_neighbors=n_neigh,weights='distance',metric=metric,algorithm='auto')
+        dict_data = make_data_dict(test_df,target_sample,n_strata = 5, strata='value')
+        weight_func = lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001)
+        model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric,algorithm='auto')
 
         dict_rslt = dict()
         for col in target_sample:
