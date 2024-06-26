@@ -14,8 +14,6 @@ from sklearn.metrics import mean_squared_log_error as msle
 import argparse, sys
 from numba import jit
 
-## matplotlib setting - py에서 쓸 때는 어디에 써야 함?
-
 import matplotlib_inline.backend_inline
 matplotlib_inline.backend_inline.set_matplotlib_formats("png2x")
 # 테마 설정: "default", "classic", "dark_background", "fivethirtyeight", "seaborn"
