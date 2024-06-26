@@ -11,6 +11,7 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_absolute_percentage_error as mape
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import mean_squared_log_error as msle
+import argparse, sys
 
 ## matplotlib setting - py에서 쓸 때는 어디에 써야 함?
 
@@ -464,23 +465,23 @@ def weigted_metric_city(X,Y,weight_norm):
             ]
     return np.linalg.norm(np.array(diff)*weight_norm,ord=5)
 
-test_col = [
-    'Deaths | Premature Death',                                  
-    'Deaths | Injury Deaths',                                    
+test_cols = [
     'Cancer | All Cancer Deaths',                                
-    'Cardiovascular Disease | Cardiovascular Disease Deaths',    
-    'Deaths | Deaths from All Causes',                           
-    'Substance Use | Drug Overdose Deaths',                      
-    'Cardiovascular Disease | Heart Disease Deaths',             
-    'Diabetes and Obesity | Diabetes Deaths',                    
     'Cancer | Lung Cancer Deaths',                               
-    'Life Expectancy at Birth | Life Expectancy',                
-    'Mental Health | Suicide',                                   
+    'Cancer | Colorectal Cancer Deaths',                         
+    'Cardiovascular Disease | Cardiovascular Disease Deaths',    
+    'Cardiovascular Disease | Heart Disease Deaths',             
+    'Deaths | Deaths from All Causes',                           
     'Deaths | Motor Vehicle Deaths',                             
     'Deaths | Gun Deaths (Firearms)',                            
+    'Deaths | Premature Death',                                  
+    'Deaths | Injury Deaths',                                    
+    'Diabetes and Obesity | Diabetes Deaths',                    
+    'Life Expectancy at Birth | Life Expectancy',                
+    'Mental Health | Suicide',                                   
     'Respiratory Infection | Pneumonia or Influenza Deaths',     
     'Substance Use | Opioid Overdose Deaths',                    
-    'Cancer | Colorectal Cancer Deaths',                         
+    'Substance Use | Drug Overdose Deaths',                      
     'Crime Incidents | Homicides',                               
 ]
 
@@ -725,22 +726,29 @@ from sklearn.neighbors import KNeighborsRegressor
 import copy, time
 from tqdm import tqdm
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-step',default=10)
+parser.add_argument('-start_idx',default=0)
+args = parser.parse_args()
+
 cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
 
 metric = 'custom'
 n_neigh = 7 
-col_select = 'else'
+col_select = 'cand'
 
-if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols,entire_label))
-if col_select == 'cand' : target_cols = cand_cols
-prjct_name = '{}{}_{}'.format(metric,n_neigh,col_select)
+if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
+if col_select == 'cand' : target_cols = cand_cols + test_cols
+prjct_name = '{}{}_ver2_{}'.format(metric,n_neigh,col_select)
 
 if metric == 'custom' : metric = lambda x,y : weigted_metric_city(x,y,weight_norm)
 
-n_work = 10
+n_work = 20 
 
-for work_idx in tqdm(range(0,n_work,2)):
+start_idx, step = int(args.start_idx), int(args.step)
+
+for work_idx in tqdm(range(start_idx,n_work,step)):
 
     target_sample = target_cols[work_idx::n_work]
     work_name = '{}_{}_{}'.format(prjct_name,work_idx,n_work) 
@@ -784,19 +792,23 @@ for work_idx in tqdm(range(0,n_work,2)):
     for col in target_sample:
         knn_col = copy.deepcopy(model)
         train_X, train_y = dict_df[col]['train']
-        _,valid_X,_,valid_y = dict_train_test[col]
+        train_score_X,valid_X,train_score_y,valid_y = dict_train_test[col]
         target_X, cond_na = dict_df[col]['target']
 
         start = time.time()
-        knn_col.fit(train_X,train_y)
-        y_pred_trgt = knn_col.predict(target_X)
-        pred_start = time.time()
+        knn_col.fit(train_score_X,train_score_y)
         y_pred_vlid = knn_col.predict(valid_X)
+        knn_col.fit(train_X,train_y)
+        
+        pred_start = time.time()
+        y_pred_trgt = knn_col.predict(target_X)
+        y_pred_vlid2 = knn_col.predict(valid_X)
         end = time.time()
 
         print (col,f'/ train_n : {len(train_X)}/ target_n : {len(target_X)}/ time : {end-start:.5f} (sec)')
         dict_knn[col], dict_rslt[col] = knn_col, {'target':y_pred_trgt,
-                                                  'valid':y_pred_vlid,
+                                                  'valid':y_pred_vlid, #predict with validating model
+                                                  'valid_test':y_pred_vlid2, #predict with testing model
                                                   'pred_time' : end-pred_start}
 
     ## save intermd pkl
