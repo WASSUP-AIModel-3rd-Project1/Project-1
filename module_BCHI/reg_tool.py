@@ -1,6 +1,6 @@
 ## FUNCTIONS - DATA- PLOT REG RSLT
 from itertools import repeat, chain
-from plot import *
+from module_BCHI.plot import *
 
 import numpy as np
 import pandas as pd
@@ -72,15 +72,14 @@ def make_reg_score_dict_cols(dict_data,dict_rslt,print_rslt=False):
 
 ## PLOT
 
-def scatter_reg_rslt(dict_train_test,dict_rslt,dict_score): #set_iput
-    target_sample = list(dict_rslt.keys())
+def scatter_reg_rslt(dict_data,dict_rslt,dict_score): #set_iput
     data_plot ={
-        col : (dict_train_test[col][3], dict_rslt[col]['valid'])
-        for col in target_sample 
+        col : (dict_rslt[col]['valid'], data['valid']['y'])
+        for col,data in dict_data.items() 
     }
-    data_line = {
-        col : (dict_train_test[col][3],dict_train_test[col][3])
-        for col in target_sample 
+    data_line ={
+        col : (data['valid']['y'],data['valid']['y'])
+        for col,data in dict_data.items() 
     }
 #    fig,axes = plt.subplots(3,3,figsize=(12,12))
 #    fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_line,
@@ -90,14 +89,18 @@ def scatter_reg_rslt(dict_train_test,dict_rslt,dict_score): #set_iput
     fig,axes = pair_plot_feat_hue(fig=fig,axes=axes,data=data_plot,
                                   pair_plot=sns.scatterplot,s=5,alpha=0.65)
 
-    for n,key in enumerate(data_plot.keys()):
-        ax = axes.flatten()[n]
+    for n,col in enumerate(data_plot.keys()):
+        spprt_X = dict_data[col]['support']['X']
+        ax = axes.flatten()[n] if len(dict_data) > 1 else  axes
         ax.set_ylabel('')
-        ax.set_title(key,fontsize=12)
-        ax.set_xlabel('rmse_model : {:.3f} | rmse_base : {:.3f}\nr2 score : {:.3f} {:>35}\n'.format(*dict_score[key]['rmse'],dict_score[key]['r2_score'][0],
-            f'n = {len(dict_train_test[key][0])}'), fontsize=10, ha ='left')
-
-    for ax in axes.flatten():
+        ax.set_title(col,fontsize=12)
+        ax.set_xlabel('rmse_model : {:.3f} | rmse_base : {:.3f}\n\
+            r2 score : {:.3f} {:>35}\n'.format(*dict_score[col]['rmse'],
+                                               dict_score[col]['r2_score'][0],
+                                               f'n = {len(spprt_X)}'),
+                      fontsize=10, ha ='left')
+    ax_iter = axes.flatten() if len(dict_data) > 1 else [axes]
+    for ax in ax_iter:
         plt.setp(ax.get_yticklabels(),rotation = 0, fontsize = 9)
         plt.setp(ax.get_xticklabels(),ha ='center',rotation = 0, fontsize = 9)
     
@@ -106,7 +109,8 @@ def scatter_reg_rslt(dict_train_test,dict_rslt,dict_score): #set_iput
 def plot_reg_score(dict_data,dict_rslt,dict_score):
     fig,axes = plt.subplots(len(dict_data),3,figsize=(15,4*len(dict_data)))
     for n, (col,data) in enumerate(dict_data.items()):
-        ax1, ax2, ax3 = axes[n][0], axes[n][1], axes[n][2]
+        ax_row = axes[n] if len(dict_data) > 1 else axes
+        ax1, ax2, ax3 = ax_row[0], ax_row[1], ax_row[2]
         test_y, y_pred = (data['valid']['y'], dict_rslt[col]['valid'])
         train_y = data['train']['y']
         base_pred = np.mean(train_y)

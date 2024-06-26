@@ -1,7 +1,9 @@
 import numpy as np
 import itertools
 
-from config import *
+from module_BCHI.config import *
+
+import os,sys
 
 ## FUNCTIONS -METRICS/ENCODING
 
@@ -45,6 +47,6 @@ def metric_btwn_city_info(X,Y):
     }
     diff = [
         encoded_metric_dict[info_dict[i]](x,y)
-        for i, (x,y) in enumerate(zip(X,Y))
+        for i, (x,y) in enumerate(zip(X.values,Y.values))
     ]
     return np.linalg.norm(np.array(diff),ord=7)

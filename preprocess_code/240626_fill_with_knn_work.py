@@ -4,11 +4,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt 
 import missingno as msno
 import seaborn as sns 
-import os
 import functools, itertools
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
 import argparse
 from numba import jit
+
+import os,sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from module_BCHI.util import *
 from module_BCHI.file_io import *
@@ -31,35 +34,22 @@ vec_metric_dict={
     for key,val in encoded_metric_dict.items()
 }
 
-def metric_btwn_city_info_for_vec(X,Y):
-    diff = [
-        vec_metric_dict['geo_strata_region'](int(X[0]),int(Y[0])),
-        vec_metric_dict['geo_strata_poverty'](int(X[1]),int(Y[1])),
-        vec_metric_dict['geo_strata_Population'](int(X[2]),int(Y[2])),
-        vec_metric_dict['geo_strata_PopDensity'](int(X[3]),int(Y[3])),
-        vec_metric_dict['geo_strata_Segregation'](int(X[4]),int(Y[4])),
-    ]
-    return np.linalg.norm(np.array(diff),ord=7)
+#def metric_btwn_city_info(X,Y):
+#    diff = [
+#        vec_metric_dict['geo_strata_region'](int(X[0]),int(Y[0])),
+#        vec_metric_dict['geo_strata_poverty'](int(X[1]),int(Y[1])),
+#        vec_metric_dict['geo_strata_Population'](int(X[2]),int(Y[2])),
+#        vec_metric_dict['geo_strata_PopDensity'](int(X[3]),int(Y[3])),
+#        vec_metric_dict['geo_strata_Segregation'](int(X[4]),int(Y[4])),
+#    ]
+#    return np.linalg.norm(np.array(diff),ord=7)
 
-metric_dict_city= dict()
-
-dict_metric = {
-    'strata_race_label': metric_on_adj(entire_race,race_adjacent),
-    'strata_sex_label': metric_on_adj(encode_sex,sex_adjacent),
-    'geo_strata_region' : metric_on_adj(encode_region,region_adjacent),
-    'geo_strata_poverty' : metric_binary,
-    'geo_strata_Population' : metric_binary,
-    'geo_strata_PopDensity' : metric_binary,
-    'geo_strata_Segregation' : metric_binary,
-    'geo_label_city' : lambda x,y : metric_dict_city(geo_strat_info,geo_strat_cols)[(x,y)]
-}
-
-def weigted_metric_city(X,Y,weight_norm):
-    city_idx, race_idx, sex_idx, date_idx = 1, 2, 3, 9
+def weigted_metric_city(X,Y,metric_dict_city,weight_norm):
+    city_idx, race_idx, sex_idx, date_idx = 0, 1, 2, 8
     diff = [
         vec_metric_dict['strata_race_label'](int(X[race_idx]),int(Y[race_idx])),
         vec_metric_dict['strata_sex_label'](int(X[sex_idx]),int(Y[sex_idx])),
-        dict_metric['geo_label_city'](int(X[city_idx]),int(Y[city_idx])),
+        metric_dict_city(int(X[city_idx]),int(Y[city_idx])),
         np.abs(X[date_idx]-Y[date_idx]),
             ]
     return np.linalg.norm(np.array(diff)*weight_norm,ord=5)
@@ -72,6 +62,8 @@ def weigted_metric_city(X,Y,weight_norm):
 from sklearn.neighbors import KNeighborsRegressor
 import copy, time
 from tqdm import tqdm
+
+import ipdb
 
 def prjct_config():
     parser = argparse.ArgumentParser()
@@ -87,7 +79,7 @@ def prjct_config():
     weight1 = np.array([0.55,0.5,0.35,0.05])
     
     knn_set={
-        'metric' : 'custom',
+        'metric' : 'canberra',
         'n_neigh' : 5, 
         'weight_norm' : weight1
     }
@@ -96,7 +88,7 @@ def prjct_config():
     if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
     if col_select == 'cand' : target_cols = cand_cols + test_cols
     if col_select == 'test' : target_cols = test_cols
-    prjct_name = '{}{}_ver2_weight1_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
+    prjct_name = '{}{}_ver2_strata-val_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
     
     return prjct_name, knn_set, work_setting, target_cols
 
@@ -111,21 +103,54 @@ def prjct_config():
 #저장한 dict 읽어올 때 좀 더 효율적이게 : cond_na, test_df에 대한 정보도 주는 쪽이 좋긴할텐데
 #그치만 어차피 복잡한 상황은 아니라 통일되고 있다고 전제해도 될 듯
 
-def make_data_dict(test_df, target_sample):
+def lists_append_together(lists:list,data:list):
+    tuple(map(lambda x : x[0].append(x[1]),zip(lists,data)))
+    return lists 
+
+def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_range=10,**kwargs):
+    if method in ['quantile','order'] :
+        p_arr = np.linspace(0,n_range)/n_range
+        cut_p = np.quantile(y,p_arr)
+    elif method == 'value':
+        cut_p = np.linspace(np.min(y)-1,np.max(y),n_range)
+    cut_p[-1] = np.max(y)+1
+    train_Xs,test_Xs,train_ys,test_ys = [],[],[],[]
+    data = [train_Xs,test_Xs,train_ys,test_ys]
+    res_Xs,res_ys =[],[]
+    for p_a,p_b in zip(cut_p[:-1],cut_p[1:]):
+        cond= (p_a <= y) & (y < p_b)
+        input_X, input_y = X[cond], y[cond]
+        if len(input_X) < 2 :
+            res_Xs.append(input_X), res_ys.append(input_y)
+        else :
+            splited = train_test_split(input_X,input_y,**kwargs)
+            data = lists_append_together(data,splited)
+    if len(res_Xs) == 0 : return tuple(map(pd.concat,data))
+    
+    if len(res_Xs) > 1 :
+        input_X, input_y = pd.concat(res_Xs), pd.concat(res_ys)
+        splited = train_test_split(input_X,input_y,**kwargs)
+        data = lists_append_together(data,splited)
+    elif len(res_Xs) == 1:
+        data[0],data[2] = lists_append_together([data[0],data[2]],[res_Xs[0],res_ys[0]])
+    
+    return tuple(map(pd.concat,data))
+
+def make_data_dict(test_df, target_sample,strata='quantile'):
     dict_data = dict()
     for col in target_sample:
         temp = test_df[info_cols+[col]]
         cond_na = temp.isna().any(axis=1)
         X_spprt, y_spprt = temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]
-        train_X, valid_X, train_y, valid_y= train_test_split(X_spprt, y_spprt,
+        train_X, valid_X, train_y, valid_y= train_test_split_strat_y(X_spprt, y_spprt,strata,
                                                          test_size = 0.2,
                                                          random_state=801,
-                                                         stratify=y_spprt) 
+                                                         ) 
         dict_data[col]={
         'support' : {'X':X_spprt, 'y':y_spprt},
         'train' : {'X':train_X, 'y':train_y},
         'valid' : {'X':valid_X, 'y':valid_y},
-        'target' : temp.loc[cond_na,info_cols]
+        'target' : {'X':temp.loc[cond_na,info_cols], 'y_cond':cond_na}
         }
     return dict_data
 
@@ -136,12 +161,12 @@ def knn_reg_process(model:KNeighborsRegressor,dict_data:dict):
     spprt_data = dict_data['support']
     train_data = dict_data['train']
     valid_data = dict_data['valid']
-    target_data = dict_data['target']
+    target_data = dict_data['target']['X']
 
-    knn_col.fit(*train_data)
+    knn_col.fit(**train_data)
     y_pred_vlid = knn_col.predict(valid_data['X'])    
-    knn_col.fit(*spprt_data)
-    y_pred_trgt = knn_col.predict(target_data['X'])
+    knn_col.fit(**spprt_data)
+    y_pred_trgt = knn_col.predict(target_data)
     
     return {'valid' : y_pred_vlid,
             'target': y_pred_trgt}
@@ -162,13 +187,20 @@ def fill_reg_rslt(save_dir,work_name,test_df,dict_data,dict_rslt):
     rslt_form = test_df[info_cols+target_sample]
 
     for col in target_sample:
-        cond = dict_data[col]['target'][1]
+        cond = dict_data[col]['target']['y_cond']
         rslt_form.loc[cond,col] = dict_rslt[col]['target']
 
     file_name = 'pvtb_filled_knn_{}.csv'.format(work_name)
     if not os.path.exists(save_dir): os.mkdir(save_dir)
     rslt_form.to_csv(os.path.join(save_dir,file_name))
 
+def make_city_metric(geo_info:pd.DataFrame):
+    city_idx_list = list(geo_info.index)
+    dict_rslt= {
+    }
+    for X,Y in itertools.product(city_idx_list,repeat=2):
+        dict_rslt[(X,Y)] = metric_btwn_city_info(geo_info.loc[X],geo_info.loc[Y])
+    return dict_rslt
 
 if __name__ == '__main__':
     # initial setting
@@ -177,35 +209,38 @@ if __name__ == '__main__':
     
     geo_name = 'geo_strat_encoded.csv'
     geo_info_path = os.path.join(RSLT_DIR,geo_name)
-    geo_strat_info = pd.read_csv(geo_info_path, index_col=0)
+    geo_strat_info = pd.read_csv(geo_info_path)
 
     pvtb_name = 'pvtb_city_encoded_ver2.csv'
-    pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name),index_col=0)
+    pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name))
     entire_label = list(pvtb_encoded.columns)[10:]
 
     metric,n_neigh,weight_norm = knn_set.values()
-    if metric == 'custom' : metric = lambda x,y : weigted_metric_city(x,y,weight_norm)
+    if metric == 'custom' :
+        metric_dict_city= make_city_metric(geo_strat_info.drop(columns='count'))
+        metric = lambda x,y : weigted_metric_city(x,y,metric_dict_city,weight_norm)
 
     # knn regression for each work
     for work_idx in tqdm(range(start_idx,n_work,step)):
-
         target_sample = target_cols[work_idx::n_work]
         work_name = '{}_{}_{}'.format(prjct_name,work_idx,n_work) 
         print(f'work : {work_name}')
 
         test_df = pvtb_encoded[info_cols+target_cols]
-        dict_data = make_data_dict(test_df,target_sample)
+        dict_data = make_data_dict(test_df,target_sample,strata='value')
         model = KNeighborsRegressor(n_neighbors=n_neigh,weights='distance',metric=metric,algorithm='auto')
 
         dict_rslt = dict()
         for col in target_sample:
+#            ipdb.set_trace()
             rslt,reg_time = knn_reg_process(model,dict_data[col])
             dict_rslt[col] = {**rslt,'time' : reg_time}
             print (col,'/ support_n : {}/ target_n : {}/ time : {:.5f} (sec)'.format(
-                len(dict_data[col]['support']['X']),len(dict_data[col]['target']['X'],reg_time)
-            ))
+                len(dict_data[col]['support']['X']),len(dict_data[col]['target']['X']),reg_time)
+            )
             
         prjct_dir = os.path.join(RSLT_DIR,f'knn/knn_{prjct_name}')
+        if not os.path.exists(prjct_dir): os.mkdir(prjct_dir)
         save_knn_intermid(os.path.join(prjct_dir,'pkl'),
                           work_name,dict_data,dict_rslt)
         ## check score

@@ -83,10 +83,12 @@ def choose_plot_grid(n:int,r_max=8,c_max=17,res_ths=2):
 def pair_plot_feat_hue(fig,axes,data:dict,pair_plot,axis_share=False,hue_label_dict=None, **kwargs):
     #ver2
     if (fig is None) or (axes is None) :
-        num_r, num_c = choose_plot_grid(len(data))
-        fig, axes = plt.subplots(num_r,num_c,figsize=(4*num_c,4*num_r),sharex=axis_share,sharey=axis_share)
+        if len(data) == 1: fig,axes = plt.subplots(figsize=(4,4))
+        else : 
+            num_r, num_c = choose_plot_grid(len(data))
+            fig, axes = plt.subplots(num_r,num_c,figsize=(4*num_c,4*num_r),sharex=axis_share,sharey=axis_share)
     for n,key in enumerate(data.keys()):
-        ax = axes.flatten()[n]
+        ax = axes.flatten()[n] if len(data) > 1 else axes        
         plt.setp(ax.get_xticklabels(),ha = 'left',rotation = 90)
         if n >= len(data) : continue
         pair_plot(x=data[key][0], y = data[key][1],ax =ax, **kwargs)
