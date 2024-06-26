@@ -7,11 +7,7 @@ import seaborn as sns
 import os
 import functools, itertools
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_absolute_percentage_error as mape
-from sklearn.metrics import mean_squared_error as mse
-from sklearn.metrics import mean_squared_log_error as msle
-import argparse, sys
+import argparse
 from numba import jit
 
 from module_BCHI.util import *
@@ -19,6 +15,7 @@ from module_BCHI.file_io import *
 from module_BCHI.plot import *
 from module_BCHI.encode_n_metric import *
 from module_BCHI.config import *
+from module_BCHI.reg_tool import *
 
 ## FUNCTIONS - DF PROCESS
 
@@ -28,38 +25,6 @@ def cond_check_dict(data=pd.DataFrame,val_dict=dict):
         for col, val in val_dict.items()
     ]
     return functools.reduce(lambda x,y: x & y, cond_list)
-
-## FUNCTIONS - DATA- SCORE REG RSLT
-
-def make_reg_score_dict(y_actual,y_pred,base_val):
-    rmse_model, rmse_base = np.sqrt(mse(y_actual,y_pred)), np.sqrt(mse([base_val]*len(y_actual),y_actual))
-    mape_model, mape_base = mape(y_actual,y_pred), mape([base_val]*len(y_actual),y_actual)
-    r2_model, r2_base = r2_score(y_actual,y_pred), 0
-    
-    return {
-        'rmse' : [rmse_model, rmse_base],
-        'mape' : [mape_model, mape_base],
-        'r2_score' : [r2_model,r2_base]
-    }
-
-def print_reg_score_dict(name,dict_score):
-    print('{}\nr2 score : {:.5f}'.format(name,dict_score['r2_score'][0]))
-    print('rmse_model : {:.5f} / rmse_base : {:.5f}\t'.format(*dict_score['rmse']),
-          'mape_model : {:.5f} / mape_base : {:.5f}\t'.format(*dict_score['mape']))
-
-def make_reg_score_dict_cols(target_sample,dict_df,dict_train_test,dict_rslt,print_plot=False):
-    dict_score = dict()
-    for col in target_sample:
-        train_y = dict_df[col]['train'][1]
-        valid_y = dict_train_test[col][3]
-        y_pred = dict_rslt[col]['valid']
-        dict_score[col] = make_reg_score_dict(valid_y,y_pred,np.mean(train_y))
-        if print_plot :
-            print_reg_score_dict(col,dict_score[col])
-            print('-'*150)
-    return dict_score
-
-
 
 vec_metric_dict={
     key : np.vectorize(val)
@@ -89,7 +54,6 @@ dict_metric = {
     'geo_label_city' : lambda x,y : metric_dict_city(geo_strat_info,geo_strat_cols)[(x,y)]
 }
 
-
 def weigted_metric_city(X,Y,weight_norm):
     city_idx, race_idx, sex_idx, date_idx = 1, 2, 3, 9
     diff = [
@@ -103,13 +67,11 @@ def weigted_metric_city(X,Y,weight_norm):
 ########################################################################
 
 # def auto_filename : for dict
-# transform checkking and making dir to decorator
 
 ########################################################################
 from sklearn.neighbors import KNeighborsRegressor
 import copy, time
 from tqdm import tqdm
-
 
 def prjct_config():
     parser = argparse.ArgumentParser()
@@ -154,15 +116,17 @@ def make_data_dict(test_df, target_sample):
     for col in target_sample:
         temp = test_df[info_cols+[col]]
         cond_na = temp.isna().any(axis=1)
-        dict_data[col] = {
-            'support' : [temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]],
-            'target' : [temp.loc[cond_na,info_cols], cond_na],
-        }
-        train_X, valid_X, train_y, valid_y= train_test_split(*dict_data[col]['support'],
+        X_spprt, y_spprt = temp.loc[~cond_na,info_cols], temp.loc[~cond_na,col]
+        train_X, valid_X, train_y, valid_y= train_test_split(X_spprt, y_spprt,
                                                          test_size = 0.2,
-                                                         random_state=801) #check how to using stratify option
-        dict_data[col]['train'] = {'X':train_X, 'y':train_y}
-        dict_data[col]['valid'] = {'X':valid_X, 'y':valid_y}
+                                                         random_state=801,
+                                                         stratify=y_spprt) 
+        dict_data[col]={
+        'support' : {'X':X_spprt, 'y':y_spprt},
+        'train' : {'X':train_X, 'y':train_y},
+        'valid' : {'X':valid_X, 'y':valid_y},
+        'target' : temp.loc[cond_na,info_cols]
+        }
     return dict_data
 
 
@@ -192,18 +156,6 @@ def save_knn_intermid(save_dir,work_name,dict_data,dict_rslt):
     save_pkl(save_dir,file_name,dict_rslt)
 
     print("pkl saved")
-
-def plot_n_save_regrslt(save_dir,work_name,dict_data,dict_rslt,dict_score,target_sample):
-    if not os.path.exists(save_dir): os.mkdir(save_dir)
-
-    fig,axes = scatter_reg_rslt(dict_data,dict_rslt,dict_score)
-    file_name = 'reg_scatter_{}.png'.format(work_name)
-    fig.savefig(os.path.join(save_dir,file_name))
-    fig,axes = plot_reg_score(dict_data,dict_rslt,dict_score,target_sample)
-    file_name = 'reg_rslt_{}.png'.format(work_name)
-    fig.savefig(os.path.join(save_dir,file_name))
-
-    print("plot completed")
 
 def fill_reg_rslt(save_dir,work_name,test_df,dict_data,dict_rslt):
     ## fill missing values
@@ -257,9 +209,9 @@ if __name__ == '__main__':
         save_knn_intermid(os.path.join(prjct_dir,'pkl'),
                           work_name,dict_data,dict_rslt)
         ## check score
-        dict_score = make_reg_score_dict_cols(target_sample,dict_data,dict_rslt,print_plot=True)
+        dict_score = make_reg_score_dict_cols(dict_data,dict_rslt,print_rslt=True)
         plot_n_save_regrslt(os.path.join(prjct_dir,'PLOT'),
-                            work_name,dict_data,dict_rslt,dict_score,target_sample)
+                            work_name,dict_data,dict_rslt,dict_score)
         fill_reg_rslt(os.path.join(prjct_dir,'PROCESSED'),
                       work_name,test_df,dict_data,dict_rslt)
         print("{} : process completed".format(work_name))
