@@ -49,7 +49,7 @@ def weigted_metric_city(X,Y,metric_dict_city,weight_norm):
     diff = [
         vec_metric_dict['strata_race_label'](int(X[race_idx]),int(Y[race_idx])),
         vec_metric_dict['strata_sex_label'](int(X[sex_idx]),int(Y[sex_idx])),
-        metric_dict_city(int(X[city_idx]),int(Y[city_idx])),
+        metric_dict_city[(int(X[city_idx]),int(Y[city_idx]))],
         np.abs(X[date_idx]-Y[date_idx]),
             ]
     return np.linalg.norm(np.array(diff)*weight_norm,ord=5)
@@ -79,7 +79,7 @@ def prjct_config():
     weight1 = np.array([0.55,0.5,0.35,0.05])
     
     knn_set={
-        'metric' : 'custom',
+        'metric' : 'euclidean',
         'n_neigh' : 5, 
         'weight_norm' : weight0
     }
