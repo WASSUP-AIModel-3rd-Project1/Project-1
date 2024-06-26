@@ -12,6 +12,7 @@ from sklearn.metrics import mean_absolute_percentage_error as mape
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import mean_squared_log_error as msle
 import argparse, sys
+from numba import jit
 
 ## matplotlib setting - py에서 쓸 때는 어디에 써야 함?
 
@@ -363,6 +364,7 @@ geo_strat_cols = [
     'geo_strata_Segregation' ,
 ]
 
+
 encoded_metric_dict = {
     'strata_race_label': metric_on_adj(range(len(entire_race)),
                                        encoding_adj(encode_race,race_adjacent)),
@@ -407,6 +409,7 @@ def metric_btwn_city_info_for_vec(X,Y):
 
 weight_norm = np.array([0.5,0.5,0.4,0.1])
 
+
 def weigted_metric_spprt(vec_metric,X,Y):
     city_idx= range(2,7)
     race_idx, sex_idx, date_idx = 0, 1, 7
@@ -435,6 +438,7 @@ geo_strat_info = pd.read_csv(geo_info_path, index_col=0)
 pvtb_name = 'pvtb_city_encoded_ver1.csv'
 pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name),index_col=0)
 
+
 def make_metric_val(geo_info,geo_cols):
     city_list = list(geo_info.index)
     metric_val= dict()
@@ -449,8 +453,6 @@ def make_metric_val(geo_info,geo_cols):
 
 metric_val = make_metric_val(geo_strat_info,geo_strat_cols)
 dict_metric['geo_label_city'] = lambda x,y : metric_val[(x,y)]
-
-weight_norm = np.array([0.5,0.5,0.4,0.1])
 
 city_list = list(geo_strat_info.index)
 
@@ -726,26 +728,31 @@ from sklearn.neighbors import KNeighborsRegressor
 import copy, time
 from tqdm import tqdm
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument('-step',default=10)
-parser.add_argument('-start_idx',default=0)
+parser.add_argument('--n_work',default=10)
+parser.add_argument('--step',default=1)
+parser.add_argument('--start_idx',default=0)
 args = parser.parse_args()
 
 cand_cols = sorted(list(set(col_cand_list)))
 entire_label = list(pvtb_encoded.columns)[9:]
 
 metric = 'custom'
-n_neigh = 7 
-col_select = 'cand'
+n_neigh = 5 
+col_select = 'test'
+weight0 = np.array([0.5,0.5,0.4,0.1])
+weight1 = np.array([0.55,0.5,0.35,0.05])
+weight_norm = weight1
 
 if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
 if col_select == 'cand' : target_cols = cand_cols + test_cols
-prjct_name = '{}{}_ver2_{}'.format(metric,n_neigh,col_select)
+if col_select == 'test' : target_cols = test_cols
+prjct_name = '{}{}_ver2_weight1_{}'.format(metric,n_neigh,col_select)
 
 if metric == 'custom' : metric = lambda x,y : weigted_metric_city(x,y,weight_norm)
 
-n_work = 20 
-
+n_work = int(args.n_work) 
 start_idx, step = int(args.start_idx), int(args.step)
 
 for work_idx in tqdm(range(start_idx,n_work,step)):
