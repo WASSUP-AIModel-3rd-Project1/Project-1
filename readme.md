@@ -42,8 +42,8 @@ _그림 1. BCHI 데이터 셋_
 
 - 레코드의 특성 관련한 칼럼에 대하여, [신뢰 구간](./research/240617_ciEDA.ipynb), [인구 및 성별 층화 관련 결측](./research/240619_check_missing_entire.ipynb), [지리적 정보에 관한 칼럼](./research/240619_EDA_geo.ipynb), [통계값의 단위와 스케일 및 분포 간의 관계](./research/240619_variance_feature.ipynb) 등에 대하여 조사
 - 위의 조사들을 통해 데이터 분포의 특성 및 결측값의 분포 등에 대하여 파악함
-- 인종, 성별 층화를 고려하면 결측률이 낮은 통계지표는 10여개에 불과하지만, 참고할 만한 최소한의 데이터는 많은 수의 통계지표가 가지고 있는 것을 확인
-- 신뢰 구간 관련 조사하는 과정에서, 데이터셋에 포함된 대다수의 통계 지표가 연도보다 도시의 특성에 따라 값의 분포가 변화하는 것을 $\chi^2$ 검정을 통해 확인
+- 인종, 성별 층화를 고려하면 결측률이 낮은 통계 항목는 10여개에 불과하지만, 참고할 만한 최소한의 데이터는 많은 수의 통계 항목이 가지고 있는 것을 확인
+- 신뢰 구간 관련 조사하는 과정에서, 데이터셋에 포함된 대다수의 통계 항목이 연도보다 도시의 특성에 따라 값의 분포가 변화하는 것을 $\chi^2$ 검정을 통해 확인
 
 ## 3. 문제 설정
 
@@ -51,7 +51,7 @@ _그림 1. BCHI 데이터 셋_
 
 ### 1) 종속 변수 설정
 
-**기준** : 결측치를 채울 수 없는 점을 고려하여, 결측률이 낮고 주요한 질병/사망요인에 대한 통계지표를 종속변수로 설정
+**기준** : 결측치를 채울 수 없는 점을 고려하여, 결측률이 낮고 주요한 질병/사망요인에 대한 통계 항목을 종속변수로 설정
 
 |분류|항목|
 |-------|------------------|
@@ -88,7 +88,7 @@ _그림 2. 각 종속변수에 따라 설정된 독립 변수 후보의 예시_
 **전체 과정**
 
 - raw data를 pivot table로 변형, k-NN 모델로 결측치 보간, 독립변수를 대상으로 scaling 진행, nominal 데이터에 대한 encoding 등
-- 도시,연도,인종,성별로 층화된 각 표본을 row로, 각 표본의 층화 정보와 118개 통계 지표를 column으로 한 pivot table로 변형
+- 도시,연도,인종,성별로 층화된 각 표본을 row로, 각 표본의 층화 정보와 118개 통계 항목을 column으로 한 pivot table로 변형
 
 ![pvtb](./imgs/3.pvtb.png)
 _그림 3. pivot table 변형 후 데이터_
@@ -97,12 +97,12 @@ _그림 3. pivot table 변형 후 데이터_
 
 - 분포의 형태 및 집계 데이터임을 감안하여 이상치 기준은 설정하지 않음
 - 세부적으로 층화된 샘플 집단에 대해 결측치를 해결하는 것이 주요한 과제
-- 각 통계 지표에 대해서 인구/성별/도시의 특성에 따라 층화된 정보를 바탕으로 통계치를 예측하는 모델을 만들어, 결측치를 보간하고자 함
+- 각 통계 항목에 대해서 인구/성별/도시의 특성에 따라 층화된 정보를 바탕으로 통계치를 예측하는 모델을 만들어, 결측치를 보간하고자 함
   - 가장 가까운 집단에서의 값을 참고한다는 직관에 따라 [k-NN regressor](./research/240620_how_to_fill_missing_knn.ipynb) 사용
   - 각 층화 특성에서의 거리에 weight를 반영된 custom metric을 구현
   - Euclidean 혹은 weight가 반영되지 않은 custom metric에 비해 유의미하게 좋은 성능을 보임
   - weight의 값은 도메인 지식과 EDA 결과를 바탕으로 휴리스틱하게 결정
-  - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 지표 하나당 분 단위로 걸리는 단점이 있음
+  - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 항목 하나당 분 단위로 걸리는 단점이 있음
   - [Decision Tree](./research/240620_how_to_fill_missing_with_dt.ipynb)를 이용한 모델도 구현해본 결과, k-NN에 준하는 성능을 얻음 
 
 ![kNN관련결과](./imgs/4.knn.png)
@@ -114,12 +114,12 @@ _그림 4. train셋의 평균을 baseline으로 하였을 때, k-NN regressor �
 
 - ```sklearn.train_test_split```을 사용하여 연도를 기준으로 층화해 train 80%, test 20%로 [분리](./model/data_prep.ipynb)
 - [Random Forest](./model/random_forest.ipynb), [XGBoost](./model/boost.ipynb), [MLP](./model/mlp.ipynb) 모델을 사용
-- 각 종속변수별로 앞서 정한 독립변수 후보만 사용하는 것과 기타 통계지표도 활용하여 예측하는 것 사이 비교 평가 진행
+- 각 종속변수별로 앞서 정한 독립변수 후보만 사용하는 것과 기타 통계 항목도 활용하여 예측하는 것 사이 비교 평가 진행
 - grid search를 통해 각 모델별로 가장 높은 성능을 내는 hyper parameter 탐색
 
-![RF학습](./imgs/5.rf.png) _그림 5-1. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best Random Foreset Model의_ $R^2$ _score 성능 비교_
+![RF학습](./imgs/5-1.rf.png) _그림 5-1. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best Random Foreset Model의_ $R^2$ _score 성능 비교_
 
-![XGB학습](./imgs/6.xgb.png) _그림 5-2. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best XGBoost Model의_ $R^2$ _score 성능 비교_
+![XGB학습](./imgs/5-2.xgb.png) _그림 5-2. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best XGBoost Model의_ $R^2$ _score 성능 비교_
 
 ### 2) [결과 평가](./model/compare_results.ipynb)
 
