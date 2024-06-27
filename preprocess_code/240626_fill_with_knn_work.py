@@ -29,26 +29,20 @@ def cond_check_dict(data=pd.DataFrame,val_dict=dict):
     ]
     return functools.reduce(lambda x,y: x & y, cond_list)
 
-vec_metric_dict={
-    key : np.vectorize(val)
-    for key,val in encoded_metric_dict.items()
-}
+#vec_metric_dict={
+#    key : np.vectorize(val)
+#    for key,val in encoded_metric_dict.items()
+#}
 
-#def metric_btwn_city_info(X,Y):
-#    diff = [
-#        vec_metric_dict['geo_strata_region'](int(X[0]),int(Y[0])),
-#        vec_metric_dict['geo_strata_poverty'](int(X[1]),int(Y[1])),
-#        vec_metric_dict['geo_strata_Population'](int(X[2]),int(Y[2])),
-#        vec_metric_dict['geo_strata_PopDensity'](int(X[3]),int(Y[3])),
-#        vec_metric_dict['geo_strata_Segregation'](int(X[4]),int(Y[4])),
-#    ]
-#    return np.linalg.norm(np.array(diff),ord=7)
+metric_race = encoded_metric_arr['strata_race_label'] 
+metric_sex = encoded_metric_arr['strata_sex_label'] 
 
-def weigted_metric_city(X,Y,metric_dict_city,weight_norm):
+@jit(nopython = True)
+def weighted_metric_city(X,Y,metric_dict_city,weight_norm):
     city_idx, race_idx, sex_idx, date_idx = 0, 1, 2, 8
     diff = [
-        vec_metric_dict['strata_race_label'](int(X[race_idx]),int(Y[race_idx])),
-        vec_metric_dict['strata_sex_label'](int(X[sex_idx]),int(Y[sex_idx])),
+        metric_race[int(X[race_idx]),int(Y[race_idx])],
+        metric_sex[int(X[sex_idx]),int(Y[sex_idx])],
         metric_dict_city[(int(X[city_idx]),int(Y[city_idx]))],
         np.abs(X[date_idx]-Y[date_idx]),
             ]
@@ -75,20 +69,22 @@ def prjct_config():
     start_idx, step = int(args.start_idx), int(args.step)
     work_setting = start_idx, n_work, step
     
-    weight0 = np.array([0.5,0.5,0.4,0.1])
-    weight1 = np.array([0.55,0.5,0.35,0.05])
+    weight_norm_idx = 1 
+    weight_func_idx = 0
+    metric = 'custom-{}'.format(weight_norm_idx)
+    weight_func = 'custom-{}'.format(weight_func_idx)
     
     knn_set={
-        'metric' : 'euclidean',
-        'n_neigh' : 5, 
-        'weight_norm' : weight0
+        'metric' : metric,
+        'n_neigh' : 7, 
+        'weight' : 'distance' 
     }
     
     col_select = 'test'
     if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
     if col_select == 'cand' : target_cols = cand_cols + test_cols
     if col_select == 'test' : target_cols = test_cols
-    prjct_name = '{}{}_ver3_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
+    prjct_name = '{}-k{}_{}_{}'.format(*knn_set.values(),col_select)
     
     return prjct_name, knn_set, work_setting, target_cols
 
@@ -103,38 +99,6 @@ def prjct_config():
 #저장한 dict 읽어올 때 좀 더 효율적이게 : cond_na, test_df에 대한 정보도 주는 쪽이 좋긴할텐데
 #그치만 어차피 복잡한 상황은 아니라 통일되고 있다고 전제해도 될 듯
 
-def lists_append_together(lists:list,data:list):
-    tuple(map(lambda x : x[0].append(x[1]),zip(lists,data)))
-    return lists 
-
-def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_strata=10,**kwargs):
-    if method in ['quantile','order'] :
-        p_arr = np.linspace(0,n_strata)/n_strata
-        cut_p = np.quantile(y,p_arr)
-    elif method == 'value':
-        cut_p = np.linspace(np.min(y)-1,np.max(y),n_strata)
-    cut_p[-1] = np.max(y)+1
-    train_Xs,test_Xs,train_ys,test_ys = [],[],[],[]
-    data = [train_Xs,test_Xs,train_ys,test_ys]
-    res_Xs,res_ys =[],[]
-    for p_a,p_b in zip(cut_p[:-1],cut_p[1:]):
-        cond= (p_a <= y) & (y < p_b)
-        input_X, input_y = X[cond], y[cond]
-        if len(input_X) < 2 :
-            res_Xs.append(input_X), res_ys.append(input_y)
-        else :
-            splited = train_test_split(input_X,input_y,**kwargs)
-            data = lists_append_together(data,splited)
-    if len(res_Xs) == 0 : return tuple(map(pd.concat,data))
-    
-    if len(res_Xs) > 1 :
-        input_X, input_y = pd.concat(res_Xs), pd.concat(res_ys)
-        splited = train_test_split(input_X,input_y,**kwargs)
-        data = lists_append_together(data,splited)
-    elif len(res_Xs) == 1:
-        data[0],data[2] = lists_append_together([data[0],data[2]],[res_Xs[0],res_ys[0]])
-    
-    return tuple(map(pd.concat,data))
 
 def make_data_dict(test_df, target_sample,n_strata=10,strata='quantile'):
     dict_data = dict()
@@ -177,7 +141,7 @@ def save_knn_intermid(save_dir,work_name,dict_data,dict_rslt):
     ## save intermd pkl
     if not os.path.exists(save_dir): os.mkdir(save_dir)
 
-    file_name = 'dict_data{}.pkl'.format(work_name)
+    file_name = 'dict_data_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_data)
     file_name = 'dict_rslt_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_rslt)
@@ -198,11 +162,10 @@ def fill_reg_rslt(save_dir,work_name,test_df,dict_data,dict_rslt):
 
 def make_city_metric(geo_info:pd.DataFrame):
     city_idx_list = list(geo_info.index)
-    dict_rslt= {
-    }
+    arr_rslt=np.zeros((len(city_idx_list),len(city_idx_list))) 
     for X,Y in itertools.product(city_idx_list,repeat=2):
-        dict_rslt[(X,Y)] = metric_btwn_city_info(geo_info.loc[X],geo_info.loc[Y])
-    return dict_rslt
+        arr_rslt[X,Y] = metric_btwn_city_info(geo_info.loc[X],geo_info.loc[Y])
+    return arr_rslt 
 
 if __name__ == '__main__':
     # initial setting
@@ -217,10 +180,22 @@ if __name__ == '__main__':
     pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name))
     entire_label = list(pvtb_encoded.columns)[10:]
 
-    metric,n_neigh,weight_norm = knn_set.values()
-    if metric == 'custom' :
-        metric_dict_city= make_city_metric(geo_strat_info.drop(columns='count'))
-        metric = lambda x,y : weigted_metric_city(x,y,metric_dict_city,weight_norm)
+    weight_norm_cand = [np.array([0.5,0.5,0.4,0.1]),
+                        np.array([0.55,0.5,0.35,0.05])]
+    weight_func_cand = [lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001),
+                        lambda x : 1/(np.power(x,7)+0.00000001),]
+    
+    
+    metric,n_neigh,weight_func = knn_set.values()
+
+    if 'custom' in metric:
+        idx = int(metric.split('-')[-1])
+        weight_norm = weight_norm_cand[idx]
+        metric_arr_city= make_city_metric(geo_strat_info.drop(columns='count'))
+        metric = lambda x,y : weighted_metric_city(x,y,metric_arr_city,weight_norm)
+    if 'custom' in weight_func:
+        idx = int(weight_func.split('-')[-1])
+        weight_func = weight_func_cand[idx]
 
     # knn regression for each work
     for work_idx in tqdm(range(start_idx,n_work,step)):
@@ -230,7 +205,6 @@ if __name__ == '__main__':
 
         test_df = pvtb_encoded[info_cols+target_cols]
         dict_data = make_data_dict(test_df,target_sample,n_strata = 5, strata='value')
-        weight_func = lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001)
         model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric,algorithm='auto')
 
         dict_rslt = dict()
