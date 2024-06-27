@@ -30,7 +30,8 @@ def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_strata=
     for p_a,p_b in zip(cut_p[:-1],cut_p[1:]):
         cond= (p_a <= y) & (y < p_b)
         input_X, input_y = X[cond], y[cond]
-        if len(input_X) < 2 :
+        if len(input_X) == 0 : continue
+        if len(input_X) == 1 : 
             res_Xs.append(input_X), res_ys.append(input_y)
         else :
             splited = train_test_split(input_X,input_y,**kwargs)

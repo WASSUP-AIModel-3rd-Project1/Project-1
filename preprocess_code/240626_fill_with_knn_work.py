@@ -69,21 +69,25 @@ def prjct_config():
     start_idx, step = int(args.start_idx), int(args.step)
     work_setting = start_idx, n_work, step
     
-    weight_norm_idx = 1 
+    weight_norm_idx = 2 
     weight_func_idx = 0
+#    metric = 'euclidean'
     metric = 'custom-{}'.format(weight_norm_idx)
-    weight_func = 'custom-{}'.format(weight_func_idx)
+    weight_func = 'distance'
+#    weight_func = 'custom-{}'.format(weight_func_idx)
     
     knn_set={
         'metric' : metric,
         'n_neigh' : 7, 
-        'weight' : 'distance' 
+        'weight' : weight_func 
     }
     
-    col_select = 'test'
+    col_select = 'cand'
     if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
-    if col_select == 'cand' : target_cols = cand_cols + test_cols
-    if col_select == 'test' : target_cols = test_cols
+    elif col_select == 'cand' : target_cols = sorted(list(set(cand_cols + test_cols)))
+    elif col_select == 'test' : target_cols = test_cols
+    elif col_select == 'all' : target_cols = entire_label
+    else :target_cols = []
     prjct_name = '{}-k{}_{}_{}'.format(*knn_set.values(),col_select)
     
     return prjct_name, knn_set, work_setting, target_cols
@@ -179,9 +183,10 @@ if __name__ == '__main__':
     pvtb_name = 'pvtb_city_encoded_ver2.csv'
     pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name))
     entire_label = list(pvtb_encoded.columns)[10:]
-
-    weight_norm_cand = [np.array([0.5,0.5,0.4,0.1]),
-                        np.array([0.55,0.5,0.35,0.05])]
+    
+    weight_norm_cand = [np.array([1,1,1,1]),
+                        np.array([0.55,0.5,0.35,0.05]),
+                        np.array([0.5,0.5,0.4,0.1])]
     weight_func_cand = [lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001),
                         lambda x : 1/(np.power(x,7)+0.00000001),]
     
