@@ -141,7 +141,7 @@ def save_knn_intermid(save_dir,work_name,dict_data,dict_rslt):
     ## save intermd pkl
     if not os.path.exists(save_dir): os.mkdir(save_dir)
 
-    file_name = 'dict_data{}.pkl'.format(work_name)
+    file_name = 'dict_data_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_data)
     file_name = 'dict_rslt_{}.pkl'.format(work_name)
     save_pkl(save_dir,file_name,dict_rslt)
