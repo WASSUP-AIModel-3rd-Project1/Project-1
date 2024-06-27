@@ -44,6 +44,7 @@ vec_metric_dict={
 #    ]
 #    return np.linalg.norm(np.array(diff),ord=7)
 
+@jit(nopython = True)
 def weigted_metric_city(X,Y,metric_dict_city,weight_norm):
     city_idx, race_idx, sex_idx, date_idx = 0, 1, 2, 8
     diff = [
@@ -75,20 +76,22 @@ def prjct_config():
     start_idx, step = int(args.start_idx), int(args.step)
     work_setting = start_idx, n_work, step
     
-    weight0 = np.array([0.5,0.5,0.4,0.1])
-    weight1 = np.array([0.55,0.5,0.35,0.05])
+    weight_norm_idx = 1 
+    weight_func_idx = 0
+    metric = 'custom-{}'.format(weight_norm_idx)
+    weight_func = 'custom-{}'.format(weight_func_idx)
     
     knn_set={
-        'metric' : 'euclidean',
-        'n_neigh' : 5, 
-        'weight_norm' : weight0
+        'metric' : metric,
+        'n_neigh' : 7, 
+        'weight' : 'distance' 
     }
     
     col_select = 'test'
     if col_select == 'else' : target_cols = list(filter(lambda x : x not in cand_cols + test_cols,entire_label))
     if col_select == 'cand' : target_cols = cand_cols + test_cols
     if col_select == 'test' : target_cols = test_cols
-    prjct_name = '{}{}_ver3_{}'.format(knn_set['metric'],knn_set['n_neigh'],col_select)
+    prjct_name = '{}-k{}_{}_{}'.format(*knn_set.values(),col_select)
     
     return prjct_name, knn_set, work_setting, target_cols
 
@@ -217,10 +220,22 @@ if __name__ == '__main__':
     pvtb_encoded = pd.read_csv(os.path.join(PVTB_DIR,pvtb_name))
     entire_label = list(pvtb_encoded.columns)[10:]
 
-    metric,n_neigh,weight_norm = knn_set.values()
-    if metric == 'custom' :
+    weight_norm_cand = [np.array([0.5,0.5,0.4,0.1]),
+                        np.array([0.55,0.5,0.35,0.05])]
+    weight_func_cand = [lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001),
+                        lambda x : 1/(np.power(x,7)+0.00000001),]
+    
+    
+    metric,n_neigh,weight_func = knn_set.values()
+
+    if 'custom' in metric:
+        idx = int(metric.split('-')[-1])
+        weight_norm = weight_norm_cand[idx]
         metric_dict_city= make_city_metric(geo_strat_info.drop(columns='count'))
         metric = lambda x,y : weigted_metric_city(x,y,metric_dict_city,weight_norm)
+    if 'custom' in weight_func:
+        idx = int(weight_func.split('-')[-1])
+        weight_func = weight_func_cand[idx]
 
     # knn regression for each work
     for work_idx in tqdm(range(start_idx,n_work,step)):
@@ -230,8 +245,7 @@ if __name__ == '__main__':
 
         test_df = pvtb_encoded[info_cols+target_cols]
         dict_data = make_data_dict(test_df,target_sample,n_strata = 5, strata='value')
-        weight_func = lambda x : np.exp2(-(np.power(10*x,2)))/(np.power(x,3)+0.00000001)
-        model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric,algorithm='auto')
+        model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric[0],algorithm='auto')
 
         dict_rslt = dict()
         for col in target_sample:
