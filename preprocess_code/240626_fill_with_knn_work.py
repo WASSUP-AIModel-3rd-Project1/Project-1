@@ -29,27 +29,20 @@ def cond_check_dict(data=pd.DataFrame,val_dict=dict):
     ]
     return functools.reduce(lambda x,y: x & y, cond_list)
 
-vec_metric_dict={
-    key : np.vectorize(val)
-    for key,val in encoded_metric_dict.items()
-}
+#vec_metric_dict={
+#    key : np.vectorize(val)
+#    for key,val in encoded_metric_dict.items()
+#}
 
-#def metric_btwn_city_info(X,Y):
-#    diff = [
-#        vec_metric_dict['geo_strata_region'](int(X[0]),int(Y[0])),
-#        vec_metric_dict['geo_strata_poverty'](int(X[1]),int(Y[1])),
-#        vec_metric_dict['geo_strata_Population'](int(X[2]),int(Y[2])),
-#        vec_metric_dict['geo_strata_PopDensity'](int(X[3]),int(Y[3])),
-#        vec_metric_dict['geo_strata_Segregation'](int(X[4]),int(Y[4])),
-#    ]
-#    return np.linalg.norm(np.array(diff),ord=7)
+metric_race = encoded_metric_arr['strata_race_label'] 
+metric_sex = encoded_metric_arr['strata_sex_label'] 
 
 @jit(nopython = True)
-def weigted_metric_city(X,Y,metric_dict_city,weight_norm):
+def weighted_metric_city(X,Y,metric_dict_city,weight_norm):
     city_idx, race_idx, sex_idx, date_idx = 0, 1, 2, 8
     diff = [
-        vec_metric_dict['strata_race_label'](int(X[race_idx]),int(Y[race_idx])),
-        vec_metric_dict['strata_sex_label'](int(X[sex_idx]),int(Y[sex_idx])),
+        metric_race[int(X[race_idx]),int(Y[race_idx])],
+        metric_sex[int(X[sex_idx]),int(Y[sex_idx])],
         metric_dict_city[(int(X[city_idx]),int(Y[city_idx]))],
         np.abs(X[date_idx]-Y[date_idx]),
             ]
@@ -169,11 +162,10 @@ def fill_reg_rslt(save_dir,work_name,test_df,dict_data,dict_rslt):
 
 def make_city_metric(geo_info:pd.DataFrame):
     city_idx_list = list(geo_info.index)
-    dict_rslt= {
-    }
+    arr_rslt=np.zeros((len(city_idx_list),len(city_idx_list))) 
     for X,Y in itertools.product(city_idx_list,repeat=2):
-        dict_rslt[(X,Y)] = metric_btwn_city_info(geo_info.loc[X],geo_info.loc[Y])
-    return dict_rslt
+        arr_rslt[X,Y] = metric_btwn_city_info(geo_info.loc[X],geo_info.loc[Y])
+    return arr_rslt 
 
 if __name__ == '__main__':
     # initial setting
@@ -199,8 +191,8 @@ if __name__ == '__main__':
     if 'custom' in metric:
         idx = int(metric.split('-')[-1])
         weight_norm = weight_norm_cand[idx]
-        metric_dict_city= make_city_metric(geo_strat_info.drop(columns='count'))
-        metric = lambda x,y : weigted_metric_city(x,y,metric_dict_city,weight_norm)
+        metric_arr_city= make_city_metric(geo_strat_info.drop(columns='count'))
+        metric = lambda x,y : weighted_metric_city(x,y,metric_arr_city,weight_norm)
     if 'custom' in weight_func:
         idx = int(weight_func.split('-')[-1])
         weight_func = weight_func_cand[idx]
@@ -213,7 +205,7 @@ if __name__ == '__main__':
 
         test_df = pvtb_encoded[info_cols+target_cols]
         dict_data = make_data_dict(test_df,target_sample,n_strata = 5, strata='value')
-        model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric[0],algorithm='auto')
+        model = KNeighborsRegressor(n_neighbors=n_neigh,weights=weight_func,metric=metric,algorithm='auto')
 
         dict_rslt = dict()
         for col in target_sample:
