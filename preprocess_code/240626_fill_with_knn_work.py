@@ -106,38 +106,6 @@ def prjct_config():
 #저장한 dict 읽어올 때 좀 더 효율적이게 : cond_na, test_df에 대한 정보도 주는 쪽이 좋긴할텐데
 #그치만 어차피 복잡한 상황은 아니라 통일되고 있다고 전제해도 될 듯
 
-def lists_append_together(lists:list,data:list):
-    tuple(map(lambda x : x[0].append(x[1]),zip(lists,data)))
-    return lists 
-
-def train_test_split_strat_y(X:pd.DataFrame,y:pd.Series,method='order',n_strata=10,**kwargs):
-    if method in ['quantile','order'] :
-        p_arr = np.linspace(0,n_strata)/n_strata
-        cut_p = np.quantile(y,p_arr)
-    elif method == 'value':
-        cut_p = np.linspace(np.min(y)-1,np.max(y),n_strata)
-    cut_p[-1] = np.max(y)+1
-    train_Xs,test_Xs,train_ys,test_ys = [],[],[],[]
-    data = [train_Xs,test_Xs,train_ys,test_ys]
-    res_Xs,res_ys =[],[]
-    for p_a,p_b in zip(cut_p[:-1],cut_p[1:]):
-        cond= (p_a <= y) & (y < p_b)
-        input_X, input_y = X[cond], y[cond]
-        if len(input_X) < 2 :
-            res_Xs.append(input_X), res_ys.append(input_y)
-        else :
-            splited = train_test_split(input_X,input_y,**kwargs)
-            data = lists_append_together(data,splited)
-    if len(res_Xs) == 0 : return tuple(map(pd.concat,data))
-    
-    if len(res_Xs) > 1 :
-        input_X, input_y = pd.concat(res_Xs), pd.concat(res_ys)
-        splited = train_test_split(input_X,input_y,**kwargs)
-        data = lists_append_together(data,splited)
-    elif len(res_Xs) == 1:
-        data[0],data[2] = lists_append_together([data[0],data[2]],[res_Xs[0],res_ys[0]])
-    
-    return tuple(map(pd.concat,data))
 
 def make_data_dict(test_df, target_sample,n_strata=10,strata='quantile'):
     dict_data = dict()
