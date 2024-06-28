@@ -54,28 +54,49 @@ _그림 1. BCHI 데이터 셋_
       - BCHI 데이터 셋의 35개 도시는 19 종의 도시 유형으로 분류 됨
       - e.g. _Midwest, Less poor cites, Smaller, Lower pop.density, Less Segregated_ :
         중서부, 덜 빈곤한, 인구규모가 작은, 낮은 인구밀도, 인종 별 거주지 분리 정도가 낮음 (Columbus, Kansas City, Minneapolis 등)
+    - [인종, 성별 층화를 고려하면 결측률이 낮은 통계 항목은 10여개에 불과하지만, 참고할 만한 최소한의 데이터는 많은 수의 통계 항목이 가지고 있는 것을 확인](./research/240619_check_missing_entire.ipynb)
+    - [지리적 정보에 관한 칼럼](./research/240619_EDA_geo.ipynb) 조사 결과, 통계 항목에 상관없이 도시의 특성에 대한 정보가 일관되게 기록된 것을 확인
   - **통계 항목과 분류, 통계값 및 단위**
     - 통계 항목은 총 118종이 있으며 'metric_item_label' column에 기록되어 있으며 값은 'value' column에 기록되어 있음
     - 통계 항목은 category 및 sub-category로 분류되어 있음
     - value는 모두 numeric
-    - 통계값 단위는 총 19종이며, 단위 종류 별로 최대 72종에서 최소 1종의 통계 항목이 해당됨
+    - [통계값의 단위와 스케일 및 분포 간의 관계](./research/240619_variance_feature.ipynb)
+      - 통계값 단위는 총 19종이며, 단위 종류 별로 최대 72종에서 최소 1종의 통계 항목이 해당됨
+      - 일반적으로 단위가 같으면 통계값의 스케일이 유사했지만, 단위가 같을지라도 통계 항목에 따라 값의 스케일에서 큰 차이가 나는 경우도 많았음
     - e.g. _All Cancer Death, 157, per 100,000_ :
       All Cancer Death(모든 암 종류를 포괄한 사망자 수)에 대한 조사이며, per 100,000 단위의 집계값이 157임을 의미
   - 통계 조사에 대한 기타 정보 : 신뢰구간, 데이터의 출처 등으로 구성
+    - [신뢰 구간 관련 칼럼에 대한 데이터 조사](./research/240617_ciEDA.ipynb) 결과, 신뢰 구간 관련 칼럼의 결측 여부로 데이터를 배제하는 것은 득보다 실이 크다고 판단
+    - 조사 과정에서 데이터셋에 포함된 대다수의 통계 항목이 연도보다 도시의 특성에 따라 값의 분포가 변화하는 것을 $\chi^2$ 검정을 통해 확인
 
 ![columns](./imgs/codebook.png)
+
 _표 1. BCHI dataset의 column들_
-
-### 3) 탐색적 데이터 분석(EDA)
-
-- 각 record의 특성 관련한 칼럼에 대하여, [신뢰 구간](./research/240617_ciEDA.ipynb), [인구 및 성별 층화 관련 결측](./research/240619_check_missing_entire.ipynb), [지리적 정보에 관한 칼럼](./research/240619_EDA_geo.ipynb), [통계값의 단위와 스케일 및 분포 간의 관계](./research/240619_variance_feature.ipynb) 등에 대하여 조사
-- 위의 조사들을 통해 데이터 분포의 특성 및 결측값의 분포 등에 대하여 파악함
-- 인종, 성별 층화를 고려하면 결측률이 낮은 통계 항목은 10여개에 불과하지만, 참고할 만한 최소한의 데이터는 많은 수의 통계 항목이 가지고 있는 것을 확인
-- 신뢰 구간 관련 조사하는 과정에서, 데이터셋에 포함된 대다수의 통계 항목이 연도보다 도시의 특성에 따라 값의 분포가 변화하는 것을 $\chi^2$ 검정을 통해 확인
 
 ## 3. 문제 설정
 
 **문제** : 도시의 특성/인종/성별로 층화된 인구집단에 대하여, 관련있는 여러 통계 항목 데이터를 바탕으로 특정 질병의 발병 및 사망에 관한 통계를 예측하고자 함
+
+- e.g. _도시의 특성,인종,성별로 층화된 인구집단에 대하여, 층화된 정보 및 Adult Physical Inactivity, Diabetes, Teen Obesity, Adult Obesity, Population : Seniors, Income : Poverty in All Ages 등의 통계값를 이용하여, All Cancer Deaths 통계값을 예측_
+
+### 0) 실험 설계
+
+- ```sklearn.train_test_split```을 사용하여 train 80%, test 20% 비율로, [연도를 기준으로 층화해 분리](./model/data_prep.ipynb)
+- 총 3가지 측면에서 실험을 진행함
+  - **모델 종류 별 비교**
+    - [k-NN](./preprocess_code/240622_fill_with_knn.py) , [Random Forest](./model/random_forest.ipynb), [XGBoost](./model/boost.ipynb), [MLP](./model/mlp.ipynb) 모델 간의 성능을 비교
+    - k-NN : 독립 변수로 각 record 별 표본의 층화 기준(race,sex,year,city의 특징)만을 사용
+    - Random Forest, XGBoost, MLP : 독립변수로 각 record 별 표본의 층화기준 및 다른 참고 통계 항목들을 사용
+  - **참고 통계 항목의 양** : 각 종속변수 별로 앞서 정한 독립변수 후보 10~30 종으로 참고 통계 항목으로 제한한 경우와 기타 통계 항목도 활용하여 예측하는 것 사이 비교. 세부적인 내용은 문제 설정 부분에서 후술
+  - **단일 모델 vs 복합 모델**
+    - Random Forest, XGBoost, MLP에 대해서 진행
+    - 복합 모델 : 각 통계 항목 별로 k-NN 모델을 이용하여 결측치를 보간한 데이터를 사용한 경우
+    - 단일 모델
+      - 결측치 보간에 k-NN 모델을 사용하지 않은 경우
+      - Random Forest, XGBoost는 결측치를 가공하지 않고 모델에 투입
+      - MLP의 경우는 결측치가 있으면 학습이 불가능하여 별도의 처리 가함
+    - 세부적인 내용은 전처리 부분에서 후술
+- Random Forest, XGBoost, MLP 학습을 할 때 grid search를 이용해 각 모델 별로 가장 높은 성능을 내는 hyper parameter 탐색
 
 ### 1) 종속 변수 설정
 
@@ -117,63 +138,69 @@ _표 3. 각 목표항목 별로 설정된 참고 항목 후보의 예시_
 
 ## 4. 전처리
 
-**전체 과정**
+### 1) 전체 과정
 
-- raw data를 pivot table로 변형, k-NN 모델로 결측치 보간, 독립변수를 대상으로 scaling 진행, nominal 데이터에 대한 encoding 등
+- raw data를 pivot table로 변형, k-NN 모델로 결측치 보간, 독립변수를 대상으로 scaling 진행, nominal 데이터에 대한 encoding 등을 사용
 - 도시,연도,인종,성별로 층화된 각 표본을 row로, 각 표본의 층화 정보와 118개 통계 항목을 column으로 한 pivot table로 변형
 
 ![pvtb](./imgs/3.pvtb.png)
 _그림 2. pivot table 변형 후 데이터_
 
-**결측치 보간**
+### 2) 결측치 보간
 
 - 분포의 형태 및 집계 데이터임을 감안하여 이상치 기준은 설정하지 않음
-- 세부적으로 층화된 샘플 집단에 대해 결측치를 해결하는 것이 주요한 과제
+- 인종-성별로 층화된 통계에 대해 결측치를 해결하는 것이 주요한 과제
 - 각 통계 항목에 대해서 인구/성별/도시의 특성에 따라 층화된 정보를 바탕으로 통계치를 예측하는 모델을 만들어, 결측치를 보간하고자 함
-  - 가장 가까운 집단에서의 값을 참고한다는 직관에 따라 [k-NN regressor](./research/240620_how_to_fill_missing_knn.ipynb) 사용
-  - 각 층화 특성에서의 거리에 weight를 반영된 custom metric을 구현
+  - 가장 가까운 집단에서의 값을 참고한다는 직관에 따라 k-NN regressor 사용
+  - [각 층화 집단 특성에서의 거리에 weight를 반영한 custom metric](./research/240620_how_to_fill_missing_knn.ipynb)을 구현
   - Euclidean 혹은 weight가 반영되지 않은 custom metric에 비해 유의미하게 좋은 성능을 보임
   - weight의 값은 도메인 지식과 EDA 결과를 바탕으로 휴리스틱하게 결정
   - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 항목 하나 당 분 단위로 걸리는 단점이 있음
   - [Decision Tree](./research/240620_how_to_fill_missing_with_dt.ipynb)를 이용한 모델도 구현해본 결과, k-NN에 준하는 성능을 얻음
 
+>$d_{\text{record}}(A,B) = \vert \sum_i \left(w_i \cdot d_i(A,B)\right)^7\vert^{1/7}$, when $A,B$ are records, $d_i(A,B)$ are distance between $A$ and $B$ in a property $i \in \{\text{city, race, sex, year}\}$, and weights $\left(w_\text{city}, w_\text{race}, w_\text{sex}, w_\text{year}\right)$ are $(0.4,0.5,0.5,0.1)$. Especially, $d_\text{city}(A,B) = \vert \sum_{j} d_j(A,B)^5\vert^{1/5}$ when $j$ are geo\_strat columns.
+
+_수식 1. k-NN regression에 사용된 custom metric_
+
 ![kNN관련결과](./imgs/4.knn.png)
 _그림 3. train셋의 평균을 baseline으로 하였을 때, k-NN regressor 적용 결과 분석 예시 (실제 및 예측값 분포/오차의 분포/성능 지표)_
 
-## 5. 모델
+## 5. [모델 학습 결과 및 평가](./model/compare_results.ipynb)
 
-### 1) 모델 선택 및 학습
+<!--다이어그램 추가-->
 
-- ```sklearn.train_test_split```을 사용하여 연도를 기준으로 층화해 train 80%, test 20%로 [분리](./model/data_prep.ipynb)
-- [Random Forest](./model/random_forest.ipynb), [XGBoost](./model/boost.ipynb), [MLP](./model/mlp.ipynb) 모델을 사용
-- 각 종속변수 별로 앞서 정한 독립변수 후보만 사용하는 것과 기타 통계 항목도 활용하여 예측하는 것 사이 비교 평가 진행
-- grid search를 통해 각 모델별로 가장 높은 성능을 내는 hyper parameter 탐색
-
-![RF학습](./imgs/5-1.rf.png) _그림 4-1. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best Random Foreset Model의_ $R^2$ _score 성능 비교_
-
-![XGB학습](./imgs/5-2.xgb.png) _그림 4-2. 앞서 정한 후보를 대상으로 독립변수를 좁히는 것 여부에 따른 Best XGBoost Model의_ $R^2$ _score 성능 비교_
-
-### 2) [결과 평가](./model/compare_results.ipynb)
 
 - 모델 성능은 RMSE, MAPE, $R^2$ score 등을 활용하여 평가
   - RMSE는 MAPE,$R^2$ score에 비해 값 스케일의 영향을 많이 받아 이번 조사에서는 상대적으로 덜 적합했음
 - XGBoost 모델과 전처리 과정에서 개발한 k-NN 모델이 최종적으로 가장 우수한 성능을 보였음
   - 거의 모든 종속 변수에 대해 k-NN 모델과 XGBoost모델의 성능은 MLP, RandomForest 모델에 비해 성능이 좋았음
-  - k-NN과 XGBoost는 종속 변수 성능 지표별로 우열의 차이가 있었으나 큰 차이가 나는 항목은 몇 없었음
+  - 전반적으로 k-NN은 MAPE 측면에서, XGBoost는 $R^2$ score 측면에서 상대방 보다 성능이 좋았지만, 대부분의 종속 변수 항목에서 다른 모델들의 성능에 비해 큰 차이는 없었음
   - XGBoost 모델은 train/predict에 걸리는 시간이 k-NN 모델에 비해 압도적으로 짧게 걸렸음
+
+![결과비교](./imgs/6-1.output.png)
+_그림 4. 단일 Model 간의 성능 비교_
+
+- Random Forest와 XGBoost 학습에서 대부분 참고 통계 항목을 제한하지 않는 쪽이 성능이 다소 좋았음
+
+![RF학습](./imgs/5-1.rf.png) _그림 5-1. 문제설정 부분에서 정한 후보로 참고 통계 항목 제한 여부에 따른 Best Random Foreset Model의_ $R^2$ _score 성능 비교_
+
+![XGB학습](./imgs/5-2.xgb.png) _그림 5-2. 문제설정 부분에서 정한 후보로 참고 통계 항목 제한 여부에 따른 Best XGBoost Model의_ $R^2$ _score 성능 비교_
+
 - k-NN 모델의 전처리를 이용한 RFC, XGBoost의 모델 학습이 이용하지 않은 것에 비해 전반적으로 성능이 더 좋았음
   - XGBosst의 경우 대개 k-NN 전처리를 사용한 쪽이 전반적으로 성능이 높았음
   - 하지만 특정 종속 변수에서는 큰 차이가 났고, 동시에 MAPE와 $R^2$ score 사이에 상반된 결과를 보였음
 
 ![결과비교](./imgs/6-1.rslt.png)
-_그림 5-1. Best Model 간의 성능 비교_
+_그림 6-1. Best Model 간의 성능 비교_
 
 ![결과비교](./imgs/6-2.rslt2.png)
-_그림 5-2. k-NN, k-NN 전처리를 사용한 XGBoost, 사용하지 않은 XGBoost 간의 성능 비교_
+_그림 6-2. k-NN, k-NN 전처리를 사용한 XGBoost, 사용하지 않은 XGBoost 간의 성능 비교_
 
-## 6. 분석 결과 및 해석
+## 6. 결과 분석
 
 - 인종, 성별, 도시 관련 특성에 대한 정보로만 학습한 k-NN의 성능이 좋았던 것과 Random Forest의 Feature Importance 분석 결과를 바탕으로 하여, 보건 통계를 예측할 때 인종, 성별이 주요한 역할을 하는 것을 확인
+- 데이터 전처리 단계에서 단순한 모델을 이용해 결측치를 보간하는 것으로, 최종 모델의 성과를 높히는 것이 가능함을 확인함
+  - 하지만 전처리 단계에서 사용한 모델의 성능에 최종 모델의 성능이 의존할 수 있는 딜레마가 존재
 - RMSE, MAPE, $R^2$ score 등의 공통적인 경향 및 각 성능 지표의 차이점에 대해 생각해볼 수 있었음
 
 ## 7. 결론 및 향후 연구
