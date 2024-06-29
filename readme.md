@@ -174,7 +174,7 @@ _그림 2. pivot table 변형 후 데이터_
 & \text{ on a property }i \in \{\text{city, race, sex, year}\}\text{, and weights }\left(w_\text{city}, w_\text{race}, w_\text{sex}, w_\text{year}\right)\text{ are }(0.4,0.5,0.5,0.1)\text{.}\\
 & \text{Especially, }d_\text{city}(A,B) = \Vert d_j(A,B)\Vert_5\text{ when }j\text{ are 5 features of a city for :stratification.}
 \end{aligned} 
-$$-->
+$$ compile at https://editor.codecogs.com/-->
 
 ![custom metric](./imgs/CodeCogsEqn.svg)
 _수식 1. k-NN regression에 사용된 custom metric_
