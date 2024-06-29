@@ -177,6 +177,7 @@ _그림 2. pivot table 변형 후 데이터_
 $$ compile at https://editor.codecogs.com/-->
 
 ![custom metric](./imgs/CodeCogsEqn.svg)
+
 _수식 1. k-NN regression에 사용된 custom metric_
 
 ![kNN관련결과](./imgs/4.knn.png)
