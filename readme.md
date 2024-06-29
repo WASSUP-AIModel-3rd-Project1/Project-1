@@ -168,10 +168,11 @@ _그림 2. pivot table 변형 후 데이터_
   - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 항목 하나 당 분 단위로 걸리는 단점이 있음
   - [Decision Tree](./research/240620_how_to_fill_missing_with_dt.ipynb)를 이용한 모델도 구현해본 결과, k-NN에 준하는 성능을 얻음
 
-$$
+```math
 d_{\text{record}}(A,B) = \left\Vert\left(w_i \cdot d_i(A,B)\right)_i \right\Vert_7\text{ , when }A,B\text{ are records, }d_i(A,B)\text{ are distance between }A\text{ and }B \\ \text{ on a property }i \in \{\text{city, race, sex, year}\}\text{, and weights }\left(w_\text{city}, w_\text{race}, w_\text{sex}, w_\text{year}\right)\text{ are }(0.4,0.5,0.5,0.1)\text{.}\\
 \text{Especially, }d_\text{city}(A,B) = \Vert d_j(A,B)\Vert_5\text{ when }j\text{ are 5 features of a city for stratification.}
-$$
+```
+
 _수식 1. k-NN regression에 사용된 custom metric_
 
 ![kNN관련결과](./imgs/4.knn.png)
