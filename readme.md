@@ -88,19 +88,19 @@ _표 1. BCHI dataset의 column들_
     - [k-NN](./preprocess_code/240622_fill_with_knn.py) , [Random Forest](./model/random_forest.ipynb), [XGBoost](./model/boost.ipynb), [MLP](./model/mlp.ipynb) 모델 간의 성능을 비교
     - k-NN : 독립 변수로 각 record 별 표본의 층화 기준(race,sex,year,city의 특징)만을 사용
     - Random Forest, XGBoost, MLP
-      - 독립변수로 각 record 별 표본의 층화기준(도시의 특성 5개,인종,성별),연도 및 해당 표본을 대상으로 한 기타 통계 항목을 사개개
+      - 독립변수로 각 record 별 표본의 층화기준(도시의 특성 5개,인종,성별),연도 및 (해당 표본을 대상으로 한) 기타 통계 항목을 사용
       - 독립변수로 사용한 기타 통계 항목(이하 참고 통계 항목)은 BCHI 데이터 셋에 포함된 다른 통계 항목.
   - **참고 통계 항목의 양**
     - 종속변수 별로 각각 참고 통계 항목을 10~30종으로 제한한 경우와 참고 통계 항목의 수를 제한하지 않고 활용하여 예측하는 것 사이에 비교
     - 참고 통계 항목 선별 과정 등 세부적인 내용은 참고 통계 항목 부분에서 후술
   - **단일 모델 vs 복합 모델**
     - Random Forest, XGBoost, MLP에 대해서 진행
-    - 복합 모델 : 각 통계 항목 별로 k-NN 모델을 이용하여 결측치를 보간한 데이터를 사용한 경우
+    - 복합 모델 : 각 통계 항목 별로 k-NN 모델의 예측값으로 결측치를 보간한 데이터를 사용
     - 단일 모델
       - 결측치 보간에 k-NN 모델을 사용하지 않은 경우
-      - Random Forest, XGBoost는 결측치를 가공하지 않고 모델에 투입
-      - MLP의 경우는 결측치가 있으면 학습이 불가능하여 별도의 처리 가함
-    - 세부적인 내용은 전처리 부분에서 후술
+      - Random Forest, XGBoost는 결측치를 가공하지 않고 모델에 입력
+      - MLP의 경우는 평균을 이용해 결측치 보간을 한 뒤 모델에 입력
+    - k-NN 모델에 대한 세부적인 내용은 전처리 부분에서 후술
 - Random Forest, XGBoost, MLP 학습을 할 때 grid search를 이용해 각 모델 별로 가장 높은 성능을 내는 hyper parameter 탐색
 
 ### 2) 종속 변수 설정
@@ -167,7 +167,7 @@ _그림 2. pivot table 변형 후 데이터_
   - weight의 값은 도메인 지식과 EDA 결과를 바탕으로 휴리스틱하게 결정
   - 하지만 custom metric의 경우 최적화가 덜 되어 train 및 predict에서 걸리는 시간이 통계 항목 하나 당 분 단위로 걸리는 단점이 있음
   - [Decision Tree](./research/240620_how_to_fill_missing_with_dt.ipynb)를 이용한 모델도 구현해본 결과, k-NN에 준하는 성능을 얻음
-
+- k-NN의 성능을 평가할 때는 train set만을 학습에 이용했고, 결측치를 보간할 값을 구할 때는 결측이 아닌 모든 데이트를 학습에 이용했음
 <!--$$
 \begin{aligned}
 \quad & d_{\text{record}}(A,B) = \left\Vert\left(w_i \cdot d_i(A,B)\right)_i \right\Vert_7\text{,}\;\text{when}\;A,B\;\text{are records,}\;d_i(A,B)\;\text{ are distance between }\;A\;\text{and}\;B & \quad \\
@@ -186,7 +186,6 @@ _그림 3. train셋의 평균을 baseline으로 하였을 때, k-NN regressor �
 ## 5. [모델 학습 결과 및 평가](./model/compare_results.ipynb)
 
 <!--다이어그램 추가-->
-
 
 - 모델 성능은 RMSE, MAPE, $R^2$ score 등을 활용하여 평가
   - RMSE는 MAPE, $R^2$ score에 비해 값 스케일의 영향을 많이 받아 이번 조사에서는 상대적으로 덜 적합했음
