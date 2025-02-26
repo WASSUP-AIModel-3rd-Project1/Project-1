@@ -4,9 +4,24 @@
 
 **사용된 스킬 셋** : NumPy, Pandas, Matplotlib, Scikit-learn, xgboost, PyTorch
 
-<!--**초록**-->
+## 0. 초록
 
-## 1. 프로젝트 개요
+- 미국 대도시 보건 데이터셋([BCHI Dataset](https://bigcitieshealthdata.org/))은 35개 대도시의 16종으로 층화된 인종 · 성별 인구 집단 별로 다양한 통계항목을 2010-2022 동안 집계한 데이터 셋.
+  - 통계 항목은 All Cancer Death, Lung Cancer Death, Diabetes Death, Drug Overdose Death 등 총 118 종으로 구성.
+    - e.g. *"Minneapolis에서 2015년에 인종 상관없이 여성에 대해 All Cancer Death를 조사한 결과, 십만명당 157명"*
+  - 각 대도시는 '지역'/ '경제적 빈곤'/ '인구'/ '인구밀도'/ '인종별 거주지 분리 정도' 5가지 특성을 기준으로 분류 되어 있음.
+    - 35개 도시가 총 19종의 도시 유형으로 분류됨.
+    - e.g. *"Minneapolis의 도시 유형 : 중서부, 덜 빈곤한, 인구규모가 작은, 낮은 인구밀도, 인종 별 거주지 분리 정도가 낮은 도시"*
+- BCHI Dataset의 다양한 통계 항목과 인종, 성별, 도시유형의 층화 정보를 이용하여 해당 집단의 특정 통계 항목의 값을 회귀 예측하는 프로젝트 진행.
+  - All Cancer Deaths, Lung Cancer Deathes 등 총 14가지 통계 항목에 대하여 회귀 예측 진행.
+  - e.g. *도시의 특성,인종,성별로 층화된 인구집단에 대하여, 층화된 정보 및 Adult Physical Inactivity, Diabetes, Teen Obesity, Adult Obesity, Population : Seniors, Income : Poverty in All Ages 등의 통계값를 이용하여, All Cancer Deaths 통계값을 예측*
+  - 예측 방법으로 XGBoost Regressor, Random Forest Regressor, Multilayer Perceptron, k-NN Regressor을 사용.
+    - k-NN의 경우는 층화 항목에 대해 $L_p$ norm을 응용한 custom metric을 이용해 예측하고, 다른 참고 항목은 사용하지 않음.
+    - 기타 모델의 경우, 결측 값들을 제외하고 학습을 진행한 경우와 결측값을 k-NN을 이용한 예측값으로 보간한 뒤 진행한 경우의 성능을 비교함.
+  - 통계 항목 별로 차이가 있지만, k-NN, k-NN으로 결측을 보간한 XGBoost, k-NN으로 결측을 보간하지 않은 XGBoost 세 모델에서 성능이 제일 높게 나옴.
+    - 평가 metric으로 RMSE, MAPE, R2 score 등을 사용.
+
+## 1. 개요
 
 ### 프로젝트 배경
 
